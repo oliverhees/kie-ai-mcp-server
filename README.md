@@ -6,6 +6,8 @@
 [![Deploy](https://img.shields.io/badge/deploy-Coolify%20%7C%20Docker-8b5cf6)](#-self-host-on-coolify-recommended)
 [![AI Tools](https://img.shields.io/badge/AI_tools-28-orange)](#-what-you-get)
 
+[🇬🇧 English](README.md) · [🇩🇪 Deutsch](README.de.md)
+
 **One MCP server for state-of-the-art AI generation — video, images, music, audio — running on _your own_ server.**
 
 This is a self-hostable build of the Kie.ai MCP server: the same 28 AI tools, plus a **remote Streamable HTTP transport** so you can deploy it on your own infrastructure (Coolify-first), reach it from anywhere, and keep your data and your API key on your own box.
