@@ -79,6 +79,8 @@ MCP_AUTH_TOKEN=$(openssl rand -hex 32)               # secret bearer token — s
 
 > ⚠️ **Always set `MCP_AUTH_TOKEN`.** Without it the `/mcp` endpoint is **open**, and anyone with the URL can spend your Kie.ai credits. Generate one with `openssl rand -hex 32`.
 
+> 💡 **These three are all you need.** You do **not** need a callback URL — the server polls task status itself and has no callback receiver. Leave `KIE_AI_CALLBACK_URL` unset (there's a built-in fallback to kie.ai's own proxy).
+
 **4. Deploy.** The build compiles the native `sqlite3` addon (~1–2 min), then fetches a TLS cert.
 
 **5. Verify**
@@ -138,7 +140,7 @@ Works with Claude Desktop, Cursor, Windsurf, VS Code, Claude Code, and more.
 |----------|---------|---------|
 | `KIE_AI_API_KEY` | — | **Required.** From [kie.ai/api-key](https://kie.ai/api-key) |
 | `KIE_AI_DB_PATH` | `~/.kie-ai/tasks.db` | SQLite path. In Docker: `/data/tasks.db` (volume) |
-| `KIE_AI_CALLBACK_URL` | — | Optional public callback URL for async tasks |
+| `KIE_AI_CALLBACK_URL` | — | **Optional — leave empty.** The server polls task status itself and has no callback receiver. Only set this if you run your *own* webhook endpoint to process completions. Unset, it falls back to kie.ai's proxy automatically. |
 
 ### Tool filtering
 
