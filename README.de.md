@@ -8,6 +8,8 @@
 
 [🇬🇧 English](README.md) · [🇩🇪 Deutsch](README.de.md)
 
+![Kie.ai MCP — 28 KI-Werkzeuge. Ein Server. Deiner.](docs/assets/kie-ai-mcp-release.de.png)
+
 **Ein MCP-Server für State-of-the-Art-KI-Generierung — Video, Bilder, Musik, Audio — auf _deinem eigenen_ Server.**
 
 Das ist eine self-hostbare Variante des Kie.ai-MCP-Servers: dieselben 28 KI-Tools, plus einen **Remote-Transport über Streamable HTTP**, damit du ihn auf deiner eigenen Infrastruktur deployen (Coolify-first), von überall erreichen und API-Key wie Daten auf deinem eigenen Server behalten kannst.
