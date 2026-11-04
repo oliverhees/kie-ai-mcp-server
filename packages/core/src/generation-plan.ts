@@ -8,6 +8,7 @@ import {
   type UsdConversion,
 } from "./pricing/rate-card.js";
 import type { ToolDef } from "./tools/types.js";
+import { resolveKling4Mode, resolveKlingOmniMode } from "./types.js";
 
 export interface PreparedPlanItem {
   index: number;
@@ -184,6 +185,27 @@ export function resolveGenerationMode(
       return "text-to-speech";
     case "elevenlabs_ttsfx":
       return "sound-effects";
+    // fork models
+    case "kling_omni_video":
+      return resolveKlingOmniMode(
+        args as Parameters<typeof resolveKlingOmniMode>[0],
+      );
+    case "kling_4_video":
+      return resolveKling4Mode(args as Parameters<typeof resolveKling4Mode>[0]);
+    case "pixverse_video":
+      return args.image_url ? "image-to-video" : "text-to-video";
+    case "vidu_video":
+      return hasValues(args.reference_image_urls)
+        ? "reference-to-video"
+        : "image-to-video";
+    case "topaz_upscale_video":
+      return "upscale";
+    case "gemini_tts":
+      return "text-to-speech";
+    case "elevenlabs_dialogue":
+      return "text-to-dialogue";
+    case "flux3_klein_image":
+      return hasValues(args.image_urls) ? "edit-image" : "text-to-image";
     default:
       return "generate";
   }
@@ -207,6 +229,13 @@ function resolveModel(tool: string, parsed: Record<string, unknown>): string {
   if (tool === "qwen_image")
     return `qwen3/${parsed.model === "qwen3-pro" ? "pro-" : ""}${mode}`;
   if (tool === "happyhorse_video") return `happyhorse-1-1/${mode}`;
+  if (tool === "kling_omni_video") return `kling-3.0-omni/${mode}`;
+  if (tool === "kling_4_video") return `kling-4.0/${mode}`;
+  if (tool === "pixverse_video") return `pixverse-v6-max/${mode}`;
+  if (tool === "vidu_video") return `vidu-q4/${mode}`;
+  if (tool === "flux3_klein_image") return `flux-3/klein-${mode}`;
+  if (tool === "gemini_tts")
+    return String(parsed.model ?? "google/gemini-3-8-flash-tts");
   return catalog?.model ?? tool;
 }
 

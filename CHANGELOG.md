@@ -15,6 +15,18 @@ Based on upstream MCP 5.6.2 / CLI 0.14.0 / OpenAI transport 0.11.0. Upgrades the
 - Root `Dockerfile` and `docker-compose.coolify.yml` build the upstream MCP package and run as the non-root `mcp` user. The entrypoint takes over a root-owned `/data` volume from 3.x once.
 
 ### Added
+- New model tools (Kie.ai Market API, contracts from docs.kie.ai, read 2026-11-04):
+  - `kling_omni_video`: Kling 3.0 Omni text-, image-, reference-to-video and transformation (3-15s, up to 4K, multi-shot, @subjects).
+  - `kling_4_video`: Kling 4.0 reference-to-video and keyframe-to-video (3-30s, up to 10 images, 5 videos, 7 subjects, 3 voices).
+  - `pixverse_video`: PixVerse V6 Max text- and image-to-video (1-15s, up to 1080p, native audio).
+  - `vidu_video`: Vidu Q4 image- and reference-to-video (3-16s, up to 4K).
+  - `topaz_upscale_video`: Topaz video upscale (1x/2x/4x).
+  - `gemini_tts`: Gemini 3.8 Flash, 3.8 Flash Lite, 3.1 Flash and 2.5 Pro TTS, single speaker or dialogue, voice clone on 3.8.
+  - `elevenlabs_dialogue`: ElevenLabs v3 multi-voice text-to-dialogue.
+  - `flux3_klein_image`: FLUX 3 Klein text-to-image and editing.
+  - `nano_banana_image` accepts `nano-banana-pro` and `nano-banana-2-1`.
+  - The new image/video tools are listed as OpenAI-transport exclusions for now; they work over MCP and CLI. Prices are `unknown` in plans.
+- `docker-compose.coolify.yml` sets `KIE_AI_ALLOW_DIRECT_GENERATION=true` by default, so media tools stay directly callable as in 3.x.
 - Legacy env names for the HTTP transport: `MCP_AUTH_TOKEN` -> `KIE_MCP_HTTP_TOKEN`, `PORT` -> `MCP_HTTP_PORT`, `HOST` -> `MCP_HTTP_HOST`, a specific `MCP_CORS_ORIGIN` -> `MCP_ALLOWED_ORIGINS`. New names win when both are set.
 - `MCP_ALLOWED_HOSTS` is derived from the Coolify domain (`SERVICE_FQDN_*`, `SERVICE_URL_*`, `COOLIFY_FQDN`, `COOLIFY_URL`) when unset.
 - `gpt_image_2` tool as an alias of `gpt_image` (same schema and behavior), so existing skills keep working.

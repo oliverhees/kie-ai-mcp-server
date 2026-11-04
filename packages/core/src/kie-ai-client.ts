@@ -415,7 +415,15 @@ export class KieAiClient {
       ...(request.aspect_ratio && { aspect_ratio: request.aspect_ratio }),
     };
 
-    if (isLite) {
+    const isForkModel =
+      request.model === "nano-banana-pro" ||
+      request.model === "nano-banana-2-1";
+    if (isForkModel) {
+      // Fork: Nano Banana Pro / 2.1 take image_input, resolution, output_format.
+      input.image_input = hasImageInput ? request.image_input : [];
+      if (request.output_format) input.output_format = request.output_format;
+      if (request.resolution) input.resolution = request.resolution;
+    } else if (isLite) {
       if (request.image_input && request.image_input.length > 10) {
         throw new Error(
           "Nano Banana 2 Lite supports at most 10 reference images",
@@ -489,6 +497,14 @@ export class KieAiClient {
       apiType === "happyhorse-video" ||
       apiType === "omnihuman-video" ||
       apiType === "gemini-omni-video" ||
+      apiType === "kling-3.0-omni-video" ||
+      apiType === "kling-4.0-video" ||
+      apiType === "pixverse-video" ||
+      apiType === "vidu-video" ||
+      apiType === "topaz-video-upscale" ||
+      apiType === "gemini-tts" ||
+      apiType === "elevenlabs-dialogue" ||
+      apiType === "flux3-image" ||
       apiType === "gpt-image-2" ||
       apiType === "z-image" ||
       apiType === "grok-imagine"
@@ -1456,6 +1472,22 @@ export class KieAiClient {
       "POST",
       jobRequest,
     );
+  }
+
+  /**
+   * Fork: generic Market API job (POST /jobs/createTask). Used by the fork's
+   * model tools, which build their own `input` from a validated schema.
+   */
+  async createMarketTask(
+    model: string,
+    input: Record<string, unknown>,
+    callBackUrl?: string,
+  ): Promise<KieAiResponse<TaskResponse>> {
+    return this.makeRequest<TaskResponse>("/jobs/createTask", "POST", {
+      model,
+      input,
+      callBackUrl: this.callbackUrl(callBackUrl),
+    });
   }
 
   async generateKlingAvatar(

@@ -1008,6 +1008,18 @@ export const OPENAI_EXCLUSIONS: Readonly<Record<string, string>> = {
   kling_avatar: "avatar workflow requires image and audio contracts",
   omnihuman_video: "avatar workflow requires image and audio contracts",
   gemini_omni: "mixed character, voice, and video workflow",
+  kling_omni_video:
+    "fork model (oliverhees): available over MCP and CLI, not mapped to OpenAI routes yet",
+  kling_4_video:
+    "fork model (oliverhees): available over MCP and CLI, not mapped to OpenAI routes yet",
+  pixverse_video:
+    "fork model (oliverhees): available over MCP and CLI, not mapped to OpenAI routes yet",
+  vidu_video:
+    "fork model (oliverhees): available over MCP and CLI, not mapped to OpenAI routes yet",
+  topaz_upscale_video:
+    "fork model (oliverhees): available over MCP and CLI, not mapped to OpenAI routes yet",
+  flux3_klein_image:
+    "fork model (oliverhees): available over MCP and CLI, not mapped to OpenAI routes yet",
 };
 export const OPENAI_OPERATION_EXCLUSIONS: Readonly<
   Record<string, Readonly<Record<string, string>>>

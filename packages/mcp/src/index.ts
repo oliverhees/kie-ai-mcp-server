@@ -81,6 +81,7 @@ export class KieAiMcpServer {
       "qwen_image",
       "gpt_image",
       "gpt_image_2", // fork alias of gpt_image
+      "flux3_klein_image", // fork
       "wan_image",
       "flux_kontext_image",
       "flux2_image",
@@ -104,8 +105,20 @@ export class KieAiMcpServer {
       "infinitalk_lip_sync", // MeiGen-AI lip sync video generator
       "kling_avatar", // Kuaishou talking avatar video generator
       "midjourney_generate", // Also generates videos (mj_video, mj_video_hd modes)
+      // fork models
+      "kling_omni_video",
+      "kling_4_video",
+      "pixverse_video",
+      "vidu_video",
+      "topaz_upscale_video",
     ],
-    audio: ["suno_generate_music", "elevenlabs_tts", "elevenlabs_ttsfx"],
+    audio: [
+      "suno_generate_music",
+      "elevenlabs_tts",
+      "elevenlabs_ttsfx",
+      "elevenlabs_dialogue", // fork
+      "gemini_tts", // fork
+    ],
     utility: KieAiMcpServer.UTILITY_TOOLS,
   };
 

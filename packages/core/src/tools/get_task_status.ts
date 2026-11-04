@@ -248,6 +248,7 @@ export const getTaskStatusTool: ToolDef<typeof GetTaskStatusSchema> = {
           "recraft-remove-background",
           "ideogram-reframe",
           "midjourney",
+          "flux3-image",
         ];
 
         // Video generation models
@@ -261,6 +262,11 @@ export const getTaskStatusTool: ToolDef<typeof GetTaskStatusSchema> = {
           "happyhorse-video",
           "hailuo",
           "runway-aleph-video",
+          "kling-3.0-omni-video",
+          "kling-4.0-video",
+          "pixverse-video",
+          "vidu-video",
+          "topaz-video-upscale",
         ];
 
         // Audio generation models
@@ -268,6 +274,8 @@ export const getTaskStatusTool: ToolDef<typeof GetTaskStatusSchema> = {
           "suno",
           "elevenlabs-tts",
           "elevenlabs-sound-effects",
+          "elevenlabs-dialogue",
+          "gemini-tts",
         ];
 
         let taskType: "image" | "video" | "audio" = "image";

@@ -5,7 +5,7 @@
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-SDK_v2-blue)](https://modelcontextprotocol.io)
 [![Transport](https://img.shields.io/badge/transport-stdio%20%7C%20streamable--http-green)](#-schnellstart)
 [![Deploy](https://img.shields.io/badge/deploy-Coolify%20%7C%20Docker-8b5cf6)](#-self-hosting-mit-coolify-empfohlen)
-[![AI Tools](https://img.shields.io/badge/AI_tools-29-orange)](#-was-du-bekommst)
+[![AI Tools](https://img.shields.io/badge/AI_tools-37-orange)](#-was-du-bekommst)
 
 [🇬🇧 English](README.md) · [🇩🇪 Deutsch](README.de.md)
 
@@ -13,7 +13,7 @@
 
 **Ein MCP-Server für State-of-the-Art-KI-Generierung — Video, Bilder, Musik, Audio — auf _deinem eigenen_ Server.**
 
-Das ist eine self-hostbare Variante des Kie.ai-MCP-Servers: alle 29 KI-Tools des Originals (Stand **5.6.2**), mit fertigem **Coolify-Deploy über Streamable HTTP**, damit du ihn auf deiner eigenen Infrastruktur betreiben, von überall erreichen und API-Key wie Daten auf deinem eigenen Server behalten kannst.
+Das ist eine self-hostbare Variante des Kie.ai-MCP-Servers: alle KI-Tools des Originals (Stand **5.6.2**) plus 8 neue Modelle, mit fertigem **Coolify-Deploy über Streamable HTTP**, damit du ihn auf deiner eigenen Infrastruktur betreiben, von überall erreichen und API-Key wie Daten auf deinem eigenen Server behalten kannst.
 
 > 🆕 **Update November 2026:** Der Fork basiert jetzt auf dem Original 5.6.2 (Monorepo mit MCP-Server, CLI und Agent-Skill). Alte Coolify-Variablen (`MCP_AUTH_TOKEN`, `PORT`, `HOST`) und der alte Tool-Name `gpt_image_2` funktionieren weiter. Details im [CHANGELOG](CHANGELOG.md).
 
@@ -142,6 +142,8 @@ Funktioniert mit Claude Desktop, Cursor, Windsurf, VS Code, Claude Code und mehr
 | `MCP_ALLOWED_HOSTS` | Coolify-Domain | Erlaubte Host-Namen, kommagetrennt |
 | `MCP_ALLOWED_ORIGINS` | alle | Erlaubte Browser-Origins (alt: `MCP_CORS_ORIGIN`) |
 
+| `KIE_AI_ALLOW_DIRECT_GENERATION` | `true` (Coolify-Datei) | Bild-/Video-/Audio-Tools direkt aufrufbar wie in 3.x. `false` = jede Generierung läuft über `prepare_media_generation` → Freigabe → `submit_media_generation` |
+
 Der MCP-Endpoint ist immer `/mcp` (`MCP_HTTP_PATH` gibt es nicht mehr). Uploads, Tasks und weitere Optionen: siehe [`.env.example`](.env.example) und die [englische README](README.md).
 
 ### Kie.ai
@@ -168,7 +170,7 @@ Priorität: `ENABLED_TOOLS` > `TOOL_CATEGORIES` > `DISABLED_TOOLS` > alle. Utili
 
 ## 🎨 Was du bekommst
 
-**29 vereinheitlichte KI-Tools** über Bild, Video und Audio — Veo 3, Nano Banana, Suno, ElevenLabs, ByteDance Seedance 2.5/Seedream, Qwen, GPT Image 2.5 (`gpt_image`, Alias `gpt_image_2`), Flux 2, Flux Kontext, Wan 3.0 + Wan Image, Gemini Omni, OmniHuman, HappyHorse, Hailuo, Kling 3.0, Midjourney, Runway Aleph, Topaz, Recraft, Ideogram und mehr. Dazu Planung mit Preis-Vorschau (`prepare_media_generation` / `submit_media_generation`) und `wait_for_task`. Jedes Tool erkennt den Modus automatisch (Generieren / Bearbeiten / Hochskalieren in einem).
+**37 KI-Tools** über Bild, Video und Audio — Veo 3, Nano Banana, Suno, ElevenLabs, ByteDance Seedance 2.5/Seedream, Qwen, GPT Image 2.5 (`gpt_image`, Alias `gpt_image_2`), Flux 2, Flux Kontext, Wan 3.0 + Wan Image, Gemini Omni, OmniHuman, HappyHorse, Hailuo, Kling 3.0, Midjourney, Runway Aleph, Topaz, Recraft, Ideogram und mehr. **Neu im Fork:** Kling 3.0 Omni (`kling_omni_video`), Kling 4.0 (`kling_4_video`), PixVerse V6 Max (`pixverse_video`), Vidu Q4 (`vidu_video`), Topaz Video-Upscale (`topaz_upscale_video`), Gemini TTS (`gemini_tts`), ElevenLabs Dialogue v3 (`elevenlabs_dialogue`), FLUX 3 Klein (`flux3_klein_image`) sowie Nano Banana Pro und 2.1 in `nano_banana_image`. Dazu Planung mit Preis-Vorschau (`prepare_media_generation` / `submit_media_generation`) und `wait_for_task`. Jedes Tool erkennt den Modus automatisch (Generieren / Bearbeiten / Hochskalieren in einem).
 
 **→ [Komplette Tool-Referenz](docs/TOOLS.md)** · [Datenbank & Tasks](docs/DATABASE.md) · [Admin-Konfiguration](docs/ADMIN.md)
 

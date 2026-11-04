@@ -5,11 +5,16 @@ import { z } from "zod";
 export const NanoBananaImageSchema = z
   .object({
     model: z
-      .enum(["nano-banana-2", "nano-banana-2-lite"])
+      .enum([
+        "nano-banana-2",
+        "nano-banana-2-lite",
+        "nano-banana-pro",
+        "nano-banana-2-1",
+      ])
       .default("nano-banana-2")
       .optional()
       .describe(
-        "Nano Banana model: nano-banana-2 supports up to 4K and 14 references; nano-banana-2-lite is the faster 1K model with up to 10 references",
+        "Nano Banana model: nano-banana-2 supports up to 4K and 14 references; nano-banana-2-lite is the faster 1K model with up to 10 references; nano-banana-pro (up to 4K, 8 references, no 1:4/4:1/1:8/8:1); nano-banana-2-1 (up to 4K, 10 references)",
       ),
     // Text-to-image parameters
     prompt: z
@@ -84,6 +89,14 @@ export const NanoBananaImageSchema = z
       const hasPrompt = !!data.prompt;
       const hasImageInput = !!data.image_input && data.image_input.length > 0;
 
+      const refs = data.image_input?.length || 0;
+      if (data.model === "nano-banana-pro") {
+        if (refs > 8) return false;
+        if (["1:4", "4:1", "1:8", "8:1"].includes(data.aspect_ratio ?? ""))
+          return false;
+      }
+      if (data.model === "nano-banana-2-1" && refs > 10) return false;
+
       if (
         data.model === "nano-banana-2-lite" &&
         ((data.image_input?.length || 0) > 10 ||
@@ -107,7 +120,7 @@ export const NanoBananaImageSchema = z
     },
     {
       message:
-        "Invalid parameter combination. Provide either: 1) prompt only (generate mode), or 2) prompt + image_input (edit mode)",
+        "Invalid parameter combination. Provide either: 1) prompt only (generate mode), or 2) prompt + image_input (edit mode). Limits: nano-banana-2-lite max 10 references at 1K; nano-banana-pro max 8 references and no 1:4/4:1/1:8/8:1; nano-banana-2-1 max 10 references",
       path: [],
     },
   );
@@ -2400,6 +2413,14 @@ export interface TaskRecord {
     | "happyhorse-video"
     | "omnihuman-video"
     | "gemini-omni-video"
+    | "kling-3.0-omni-video"
+    | "kling-4.0-video"
+    | "pixverse-video"
+    | "vidu-video"
+    | "topaz-video-upscale"
+    | "gemini-tts"
+    | "elevenlabs-dialogue"
+    | "flux3-image"
     | "mcp-task";
   status: "pending" | "processing" | "completed" | "failed";
   created_at: string;
@@ -2652,3 +2673,703 @@ export interface KieAiConfig {
   callbackUrlFallback: string;
   fileUploadBaseUrl?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Fork (oliverhees) models: Kling 3.0 Omni, Kling 4.0, PixVerse V6, Vidu Q4,
+// Topaz video upscale, Gemini TTS, ElevenLabs Dialogue v3, FLUX 3 Klein.
+// Contracts from docs.kie.ai/market (read 2026-11-04).
+// ---------------------------------------------------------------------------
+
+const httpUrl = z.string().regex(/^https?:\/\/.+/, "Must be an http(s) URL");
+const mediaUrl = z
+  .string()
+  .regex(/^(https?|oss):\/\/.+/, "Must be an http(s) or oss URL");
+
+const KlingShotSchema = z.object({
+  prompt: z.string().min(1).max(512).describe("Shot prompt (max 512 chars)"),
+  duration: z.number().int().min(1).max(12).describe("Shot length in seconds"),
+});
+
+const KlingOmniElementSchema = z.object({
+  name: z.string().min(1).describe("Unique subject name, referenced as @name"),
+  description: z.string().min(1).describe("Short subject description"),
+  element_input_urls: z
+    .array(mediaUrl)
+    .min(1)
+    .max(4)
+    .describe("2-4 images of the subject, or exactly 1 character video"),
+  element_input_audio_urls: z
+    .array(mediaUrl)
+    .optional()
+    .describe("Optional voice audio for the subject"),
+  start_time: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("Video subject trim start in ms"),
+  end_time: z
+    .number()
+    .int()
+    .min(3000)
+    .optional()
+    .describe("Video subject trim end in ms (span 3000-8000)"),
+});
+
+export const KLING_OMNI_MODES = [
+  "text-to-video",
+  "image-to-video",
+  "reference-to-video",
+  "transformation",
+] as const;
+
+export const KlingOmniVideoSchema = z
+  .object({
+    mode: z
+      .enum(KLING_OMNI_MODES)
+      .optional()
+      .describe(
+        "Optional. Auto: video_urls -> reference-to-video, 1-2 image_urls -> image-to-video (first/last frame), 3+ image_urls or elements -> reference-to-video, else text-to-video. transformation (restyle a video) must be set explicitly",
+      ),
+    prompt: z
+      .string()
+      .min(1)
+      .max(3072)
+      .describe("Video prompt (max 3072 chars). Reference subjects as @name"),
+    image_urls: z
+      .array(mediaUrl)
+      .max(7)
+      .optional()
+      .describe(
+        "image-to-video: 1 (first frame) or 2 (first + last frame). reference-to-video: up to 7 reference images (up to 4 with a video). JPG/PNG, min 300px",
+      ),
+    video_urls: z
+      .array(mediaUrl)
+      .length(1)
+      .optional()
+      .describe(
+        "Exactly 1 reference/source video (MP4/MOV, 3-15.5s, max 200MB) for reference-to-video or transformation",
+      ),
+    duration: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(5)
+      .optional()
+      .describe("Duration in seconds (3-15, default 5)"),
+    resolution: z
+      .enum(["720p", "1080p", "4k"])
+      .default("720p")
+      .optional()
+      .describe("Output resolution (default 720p)"),
+    aspect_ratio: z
+      .enum(["16:9", "9:16", "1:1", "auto"])
+      .optional()
+      .describe(
+        "16:9, 9:16, 1:1, or auto (follow the first frame / source video). Default: auto for image-to-video and video input, else 16:9",
+      ),
+    audio: z
+      .boolean()
+      .optional()
+      .describe(
+        "Generate native audio (default false). Always false when a video is provided",
+      ),
+    customize_multi_shots: z
+      .boolean()
+      .optional()
+      .describe("Use your own shots from multi_prompt"),
+    prefer_multi_shots: z
+      .boolean()
+      .optional()
+      .describe("Let Kling split the prompt into shots automatically"),
+    multi_prompt: z
+      .array(KlingShotSchema)
+      .min(1)
+      .max(6)
+      .optional()
+      .describe(
+        "Up to 6 shots (prompt + duration); total <= 15s. Needs customize_multi_shots=true",
+      ),
+    elements: z
+      .array(KlingOmniElementSchema)
+      .max(7)
+      .optional()
+      .describe(
+        "Subjects (characters, objects) referenced as @name in the prompt",
+      ),
+    callBackUrl: z.string().url().optional(),
+  })
+  .refine((d) => !(d.customize_multi_shots && d.prefer_multi_shots), {
+    message: "customize_multi_shots and prefer_multi_shots cannot both be true",
+    path: ["prefer_multi_shots"],
+  })
+  .refine((d) => !d.customize_multi_shots || !!d.multi_prompt?.length, {
+    message: "customize_multi_shots=true needs multi_prompt",
+    path: ["multi_prompt"],
+  })
+  .refine(
+    (d) =>
+      !d.multi_prompt ||
+      d.multi_prompt.reduce((sum, shot) => sum + shot.duration, 0) <= 15,
+    {
+      message: "Total multi_prompt duration must be <= 15s",
+      path: ["multi_prompt"],
+    },
+  )
+  .refine((d) => d.mode !== "transformation" || !!d.video_urls?.length, {
+    message: "transformation needs video_urls",
+    path: ["video_urls"],
+  })
+  .refine(
+    (d) =>
+      d.mode !== "image-to-video" || [1, 2].includes(d.image_urls?.length ?? 0),
+    { message: "image-to-video needs 1 or 2 image_urls", path: ["image_urls"] },
+  );
+export type KlingOmniVideoRequest = z.infer<typeof KlingOmniVideoSchema>;
+
+export function resolveKlingOmniMode(
+  d: Pick<
+    KlingOmniVideoRequest,
+    "mode" | "image_urls" | "video_urls" | "elements"
+  >,
+): (typeof KLING_OMNI_MODES)[number] {
+  if (d.mode) return d.mode;
+  if (d.video_urls?.length) return "reference-to-video";
+  const images = d.image_urls?.length ?? 0;
+  if (images >= 3 || d.elements?.length) return "reference-to-video";
+  if (images > 0) return "image-to-video";
+  return "text-to-video";
+}
+
+const KLING4_NAME = /^[一-龥A-Za-z0-9_]{1,20}$/;
+
+export const Kling4VideoSchema = z
+  .object({
+    mode: z
+      .enum(["reference-to-video", "keyframe-to-video"])
+      .optional()
+      .describe(
+        "Optional. Auto: first_frame_url / keyframe_urls / last_frame_url -> keyframe-to-video, else reference-to-video (also plain text-to-video)",
+      ),
+    prompt: z
+      .string()
+      .min(1)
+      .max(8000)
+      .describe(
+        "Prompt (max 8000 chars). Mentions: @image_1, @video_1, @<element/voice name>; keyframe mode: @first_frame, @keyframe_1, @last_frame",
+      ),
+    duration: z
+      .number()
+      .int()
+      .min(3)
+      .max(30)
+      .default(5)
+      .optional()
+      .describe("Duration in seconds (3-30, default 5)"),
+    resolution: z
+      .enum(["720p", "1080p"])
+      .default("720p")
+      .optional()
+      .describe("Output resolution (default 720p)"),
+    aspect_ratio: z
+      .enum(["auto", "16:9", "9:16", "1:1", "21:9"])
+      .optional()
+      .describe(
+        "Aspect ratio. Default: auto with references/frames, else 16:9",
+      ),
+    image_urls: z
+      .array(httpUrl)
+      .max(10)
+      .optional()
+      .describe("reference-to-video: up to 10 reference images (@image_N)"),
+    video_urls: z
+      .array(httpUrl)
+      .max(5)
+      .optional()
+      .describe(
+        "reference-to-video: up to 5 reference videos, 2-30s each (@video_N)",
+      ),
+    keep_original_sound: z
+      .boolean()
+      .optional()
+      .describe("Keep the reference video's sound (only with video_urls)"),
+    elements: z
+      .array(
+        z.object({
+          name: z
+            .string()
+            .regex(KLING4_NAME)
+            .describe("1-20 chars, letters/digits/_"),
+          image_urls: z.array(httpUrl).min(2).max(4).optional(),
+          video_url: httpUrl
+            .optional()
+            .describe("3-8s single-shot character video"),
+          tag: z
+            .enum([
+              "character",
+              "animal",
+              "prop",
+              "costume",
+              "scene",
+              "effect",
+              "others",
+            ])
+            .optional(),
+          description: z.string().max(100).optional(),
+          voice_url: httpUrl.optional(),
+        }),
+      )
+      .max(7)
+      .optional()
+      .describe("reference-to-video: up to 7 subjects (max 3 video subjects)"),
+    voices: z
+      .array(
+        z.object({ name: z.string().regex(KLING4_NAME), audio_url: httpUrl }),
+      )
+      .max(3)
+      .optional()
+      .describe("reference-to-video: up to 3 named voices (@name)"),
+    first_frame_url: httpUrl
+      .optional()
+      .describe("keyframe-to-video: first frame"),
+    keyframe_urls: z
+      .array(httpUrl)
+      .max(8)
+      .optional()
+      .describe(
+        "keyframe-to-video: middle frames in order (limited by duration)",
+      ),
+    last_frame_url: httpUrl
+      .optional()
+      .describe("keyframe-to-video: last frame"),
+    callBackUrl: z.string().url().optional(),
+  })
+  .refine(
+    (d) =>
+      (d.elements?.length ?? 0) +
+        (d.image_urls?.length ?? 0) +
+        (d.video_urls?.length ?? 0) +
+        (d.voices?.length ?? 0) <=
+      15,
+    {
+      message:
+        "elements + image_urls + video_urls + voices must be <= 15 items",
+    },
+  )
+  .refine(
+    (d) => (d.elements ?? []).every((e) => !(e.image_urls && e.video_url)),
+    {
+      message: "An element uses either image_urls or video_url, not both",
+      path: ["elements"],
+    },
+  );
+export type Kling4VideoRequest = z.infer<typeof Kling4VideoSchema>;
+
+export function resolveKling4Mode(
+  d: Pick<
+    Kling4VideoRequest,
+    "mode" | "first_frame_url" | "keyframe_urls" | "last_frame_url"
+  >,
+): "reference-to-video" | "keyframe-to-video" {
+  if (d.mode) return d.mode;
+  return d.first_frame_url || d.last_frame_url || d.keyframe_urls?.length
+    ? "keyframe-to-video"
+    : "reference-to-video";
+}
+
+export const PixverseVideoSchema = z.object({
+  prompt: z.string().min(1).max(5000).describe("Video prompt (max 5000 chars)"),
+  image_url: httpUrl
+    .optional()
+    .describe(
+      "Optional start image -> image-to-video (JPG/PNG/WebP, max 20MB). Output follows the image's aspect ratio",
+    ),
+  aspect_ratio: z
+    .enum(["16:9", "4:3", "1:1", "3:4", "9:16", "2:3", "3:2", "21:9"])
+    .default("16:9")
+    .optional()
+    .describe("Text-to-video only (default 16:9); ignored with image_url"),
+  quality: z
+    .enum(["360p", "540p", "720p", "1080p"])
+    .default("720p")
+    .optional()
+    .describe("Output quality (default 720p)"),
+  duration: z
+    .number()
+    .int()
+    .min(1)
+    .max(15)
+    .default(5)
+    .optional()
+    .describe("Duration in seconds (1-15, default 5)"),
+  generate_audio: z
+    .boolean()
+    .default(false)
+    .optional()
+    .describe("Generate native synced audio (default false)"),
+  seed: z.number().int().min(0).max(2147483647).optional(),
+  callBackUrl: z.string().url().optional(),
+});
+export type PixverseVideoRequest = z.infer<typeof PixverseVideoSchema>;
+
+export const ViduVideoSchema = z
+  .object({
+    prompt: z
+      .string()
+      .min(1)
+      .max(20000)
+      .optional()
+      .describe(
+        "Prompt (max 20000 chars). Required for reference-to-video; refer to inputs as 'reference image 2'",
+      ),
+    image_url: httpUrl
+      .optional()
+      .describe("Start image -> image-to-video (JPG/PNG/WebP, max 50MB)"),
+    reference_image_urls: z
+      .array(httpUrl)
+      .min(1)
+      .max(15)
+      .optional()
+      .describe("1-15 reference images -> reference-to-video"),
+    reference_audio_urls: z
+      .array(httpUrl)
+      .max(3)
+      .optional()
+      .describe("reference-to-video: up to 3 MP3 voice clips (3-12s each)"),
+    duration: z
+      .number()
+      .int()
+      .min(3)
+      .max(16)
+      .default(5)
+      .optional()
+      .describe("Duration in seconds (3-16, default 5)"),
+    resolution: z
+      .enum(["540p", "720p", "1080p", "2k", "4k"])
+      .default("720p")
+      .optional()
+      .describe("Output resolution (default 720p)"),
+    audio: z
+      .boolean()
+      .default(true)
+      .optional()
+      .describe("Dialogue and sound effects (default true)"),
+    aspect_ratio: z
+      .enum(["16:9", "9:16", "1:1", "4:3", "3:4"])
+      .optional()
+      .describe("reference-to-video only (default 16:9)"),
+    callBackUrl: z.string().url().optional(),
+  })
+  .refine((d) => !!d.image_url !== !!d.reference_image_urls?.length, {
+    message:
+      "Provide either image_url (image-to-video) or reference_image_urls (reference-to-video)",
+  })
+  .refine((d) => !d.reference_image_urls?.length || !!d.prompt, {
+    message: "reference-to-video needs a prompt",
+    path: ["prompt"],
+  });
+export type ViduVideoRequest = z.infer<typeof ViduVideoSchema>;
+
+export const TopazUpscaleVideoSchema = z.object({
+  video_url: z
+    .string()
+    .url()
+    .describe("Video URL to upscale (MP4, MOV or MKV, max 50MB)"),
+  upscale_factor: z
+    .enum(["1", "2", "4"])
+    .default("2")
+    .optional()
+    .describe("Upscale factor (default 2). 1 = enhance without enlarging"),
+  callBackUrl: z.string().url().optional(),
+});
+export type TopazUpscaleVideoRequest = z.infer<typeof TopazUpscaleVideoSchema>;
+
+export const GEMINI_TTS_MODELS = [
+  "google/gemini-3-8-flash-tts",
+  "google/gemini-3-8-flash-lite-tts",
+  "google/gemini-3-1-flash-tts",
+  "google/gemini-2-5-pro-tts",
+] as const;
+
+/** The 30 voices of Gemini 3.1 Flash TTS and 2.5 Pro TTS. 3.8 has 70. */
+export const GEMINI_TTS_CLASSIC_VOICES = [
+  "Achernar",
+  "Achird",
+  "Algenib",
+  "Algieba",
+  "Alnilam",
+  "Aoede",
+  "Autonoe",
+  "Callirrhoe",
+  "Charon",
+  "Despina",
+  "Enceladus",
+  "Erinome",
+  "Fenrir",
+  "Gacrux",
+  "Iapetus",
+  "Kore",
+  "Laomedeia",
+  "Leda",
+  "Orus",
+  "Puck",
+  "Pulcherrima",
+  "Rasalgethi",
+  "Sadachbia",
+  "Sadaltager",
+  "Schedar",
+  "Sulafat",
+  "Umbriel",
+  "Vindemiatrix",
+  "Zephyr",
+  "Zubenelgenubi",
+] as const;
+
+const GeminiSpeakerSchema = z.object({
+  speaker_id: z
+    .string()
+    .regex(/^Speaker \d+$/, 'Format "Speaker N"')
+    .describe('Speaker id, e.g. "Speaker 1"'),
+  voice_name: z
+    .string()
+    .optional()
+    .describe(
+      "Voice name, e.g. Kore, Puck, Charon, Zephyr, Fola (3.8 only). Default Fola (3.8) / Kore (3.1, 2.5)",
+    ),
+  replica: z
+    .object({
+      source_audio_url: z.string().url(),
+      consent_audio_url: z.string().url(),
+    })
+    .optional()
+    .describe(
+      "3.8 only: temporary voice clone from a 10-30s WAV plus a WAV consent recording. Replaces voice_name",
+    ),
+  accent: z
+    .enum([
+      "Neutral",
+      "American (Gen)",
+      "American (Valley)",
+      "American (South)",
+      "British (RP)",
+      "British (Brixton)",
+      "Transatlantic",
+      "Australian",
+    ])
+    .optional()
+    .describe("3.1 / 2.5 only (default Neutral)"),
+  audio_profile: z
+    .string()
+    .optional()
+    .describe("3.1 / 2.5 only: free-text voice profile"),
+  style: z
+    .enum([
+      "Vocal Smile",
+      "Newscaster",
+      "Whisper",
+      "Empathetic",
+      "Promo/Hype",
+      "Deadpan",
+    ])
+    .optional()
+    .describe("3.1 / 2.5 only"),
+  pace: z
+    .enum(["Natural", "Rapid Fire", "The Drift", "Staccato"])
+    .optional()
+    .describe("3.1 / 2.5 only"),
+});
+
+export const GeminiTtsSchema = z
+  .object({
+    model: z
+      .enum(GEMINI_TTS_MODELS)
+      .default("google/gemini-3-8-flash-tts")
+      .optional()
+      .describe(
+        "Gemini TTS model (default 3.8 Flash: 70 voices, voice clone, inline tags like <laugh>). 3.1 Flash / 2.5 Pro: 30 voices with accent, style, pace",
+      ),
+    text: z
+      .string()
+      .min(1)
+      .max(10000)
+      .optional()
+      .describe(
+        "Shortcut for one speaker: the text to speak (instead of dialogue_turns)",
+      ),
+    voice_name: z
+      .string()
+      .optional()
+      .describe("Shortcut voice for the single speaker"),
+    speakers: z
+      .array(GeminiSpeakerSchema)
+      .min(1)
+      .optional()
+      .describe("Speakers for multi-speaker dialogue"),
+    dialogue_turns: z
+      .array(
+        z.object({
+          speaker_id: z.string().describe('e.g. "Speaker 1"'),
+          text: z.string().min(1).max(10000),
+          style: z
+            .string()
+            .optional()
+            .describe("3.8 only: free-text delivery style"),
+        }),
+      )
+      .min(1)
+      .optional()
+      .describe("Ordered dialogue turns"),
+    temperature: z
+      .number()
+      .min(0)
+      .max(2)
+      .optional()
+      .describe("0-2 (default 1)"),
+    scene: z.string().optional().describe("3.1 / 2.5 only: scene description"),
+    sample_context: z
+      .string()
+      .optional()
+      .describe("3.1 / 2.5 only: overall tone"),
+    filler_words: z
+      .boolean()
+      .optional()
+      .describe("3.8 only, two speakers: add natural filler words"),
+    callBackUrl: z.string().url().optional(),
+  })
+  .refine((d) => !!d.text || !!d.dialogue_turns?.length, {
+    message: "Provide text (single speaker) or dialogue_turns",
+  })
+  .refine((d) => !d.dialogue_turns?.length || !!d.speakers?.length, {
+    message: "dialogue_turns needs speakers",
+    path: ["speakers"],
+  });
+export type GeminiTtsRequest = z.infer<typeof GeminiTtsSchema>;
+
+export const ElevenLabsDialogueSchema = z.object({
+  dialogue: z
+    .array(
+      z.object({
+        text: z
+          .string()
+          .min(1)
+          .describe(
+            "Line to speak. v3 audio tags like [laughs] or [whispers] work",
+          ),
+        voice: z
+          .string()
+          .default("EkK5I93UQWFDigLMpZcX")
+          .optional()
+          .describe(
+            "ElevenLabs voice ID (default EkK5I93UQWFDigLMpZcX = James). E.g. FGY2WhTYpPnrIDTdsKH5 Laura, TX3LPaxmHKxFdv7VOQHJ Liam, BZgkqPqms7Kj9ulSkVzn Eve, nPczCjzI2devNBz1zQrb Brian, hpp4J3VqNfWAUOO0d1Us Bella",
+          ),
+      }),
+    )
+    .min(1)
+    .describe("Dialogue lines in order; total text max 5000 characters")
+    .refine((lines) => lines.reduce((n, l) => n + l.text.length, 0) <= 5000, {
+      message: "Total dialogue text must be <= 5000 characters",
+    }),
+  stability: z
+    .union([z.literal(0), z.literal(0.5), z.literal(1)])
+    .default(0.5)
+    .optional()
+    .describe("0 creative, 0.5 natural (default), 1 robust"),
+  language_code: z
+    .string()
+    .regex(/^[a-z]{2,3}$/)
+    .optional()
+    .describe("ISO language code, e.g. de, en. Omit for auto-detect"),
+  callBackUrl: z.string().url().optional(),
+});
+export type ElevenLabsDialogueRequest = z.infer<
+  typeof ElevenLabsDialogueSchema
+>;
+
+export const Flux3KleinImageSchema = z
+  .object({
+    prompt: z
+      .string()
+      .min(1)
+      .max(5000)
+      .describe("Prompt or edit instruction (max 5000 chars)"),
+    image_urls: z
+      .array(httpUrl)
+      .min(1)
+      .max(10)
+      .optional()
+      .describe("1-10 input images -> edit mode (JPG/PNG/WebP, max 30MB)"),
+    aspect_ratio: z
+      .enum([
+        "1:1",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "16:9",
+        "9:16",
+        "21:9",
+        "9:21",
+        "auto",
+      ])
+      .optional()
+      .describe("Default 1:1 (generate) / auto = first input image (edit)"),
+    resolution: z
+      .enum(["1K", "2K", "4K"])
+      .default("1K")
+      .optional()
+      .describe("1K (1.6 credits), 2K (2.5), 4K (6.5) per image"),
+    width: z
+      .number()
+      .int()
+      .min(256)
+      .max(4096)
+      .optional()
+      .describe("Custom width; needs height"),
+    height: z
+      .number()
+      .int()
+      .min(256)
+      .max(4096)
+      .optional()
+      .describe("Custom height; needs width"),
+    output_format: z.enum(["png", "jpeg", "webp"]).default("png").optional(),
+    num_images: z
+      .number()
+      .int()
+      .min(1)
+      .max(4)
+      .default(1)
+      .optional()
+      .describe("1-4 images"),
+    seed: z.number().int().min(0).max(2147483647).optional(),
+    enhance_prompt: z
+      .boolean()
+      .optional()
+      .describe("Let FLUX rewrite the prompt (default true)"),
+    nsfw_checker: z
+      .boolean()
+      .optional()
+      .describe("Extra NSFW filtering (default false)"),
+    callBackUrl: z.string().url().optional(),
+  })
+  .refine((d) => (d.width === undefined) === (d.height === undefined), {
+    message: "width and height must be set together",
+    path: ["width"],
+  })
+  .refine((d) => d.aspect_ratio !== "auto" || !!d.image_urls?.length, {
+    message: "aspect_ratio auto needs image_urls",
+    path: ["aspect_ratio"],
+  })
+  .refine(
+    (d) => {
+      if (d.width === undefined || d.height === undefined) return true;
+      const ratio = d.width / d.height;
+      return ratio >= 0.4 && ratio <= 2.5;
+    },
+    {
+      message: "width/height ratio must be between 1:2.5 and 2.5:1",
+      path: ["width"],
+    },
+  );
+export type Flux3KleinImageRequest = z.infer<typeof Flux3KleinImageSchema>;

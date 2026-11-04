@@ -24,6 +24,9 @@ services:
       - KIE_MCP_HTTP_TOKEN=${KIE_MCP_HTTP_TOKEN:-}
       # Optional: comma-separated Host allowlist. Empty = Coolify domain.
       - MCP_ALLOWED_HOSTS=${MCP_ALLOWED_HOSTS:-}
+      # Direct media tools (gpt_image_2, kling_video, ...) like the 3.x fork.
+      # Set to false to require prepare -> approve -> submit for every paid job.
+      - KIE_AI_ALLOW_DIRECT_GENERATION=${KIE_AI_ALLOW_DIRECT_GENERATION:-true}
       - KIE_AI_DB_PATH=/data/tasks.db
       - KIE_AI_CALLBACK_URL=${KIE_AI_CALLBACK_URL:-}
       - NODE_ENV=production

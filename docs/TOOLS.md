@@ -6,9 +6,9 @@ Every tool below is available in both the MCP server and the `kie-cli` CLI. Para
 
 ## Contents
 
-- **Image:** [bytedance_seedream_image](#bytedance_seedream_image), [flux_kontext_image](#flux_kontext_image), [flux2_image](#flux2_image), [gpt_image](#gpt_image), [ideogram_reframe](#ideogram_reframe), [midjourney_generate](#midjourney_generate), [nano_banana_image](#nano_banana_image), [qwen_image](#qwen_image), [recraft_remove_background](#recraft_remove_background), [topaz_upscale_image](#topaz_upscale_image), [wan_image](#wan_image), [z_image](#z_image)
-- **Video:** [bytedance_seedance_video](#bytedance_seedance_video), [gemini_omni](#gemini_omni), [grok_imagine](#grok_imagine), [hailuo_video](#hailuo_video), [happyhorse_video](#happyhorse_video), [infinitalk_lip_sync](#infinitalk_lip_sync), [kling_avatar](#kling_avatar), [kling_video](#kling_video), [omnihuman_video](#omnihuman_video), [runway_aleph_video](#runway_aleph_video), [veo3_generate_video](#veo3_generate_video), [veo3_get_1080p_video](#veo3_get_1080p_video), [wan_animate](#wan_animate), [wan_video](#wan_video)
-- **Audio:** [elevenlabs_tts](#elevenlabs_tts), [elevenlabs_ttsfx](#elevenlabs_ttsfx), [suno_generate_music](#suno_generate_music)
+- **Image:** [bytedance_seedream_image](#bytedance_seedream_image), [flux_kontext_image](#flux_kontext_image), [flux2_image](#flux2_image), [flux3_klein_image](#flux3_klein_image), [gpt_image](#gpt_image), [gpt_image_2](#gpt_image_2), [ideogram_reframe](#ideogram_reframe), [midjourney_generate](#midjourney_generate), [nano_banana_image](#nano_banana_image), [qwen_image](#qwen_image), [recraft_remove_background](#recraft_remove_background), [topaz_upscale_image](#topaz_upscale_image), [wan_image](#wan_image), [z_image](#z_image)
+- **Video:** [bytedance_seedance_video](#bytedance_seedance_video), [gemini_omni](#gemini_omni), [grok_imagine](#grok_imagine), [hailuo_video](#hailuo_video), [happyhorse_video](#happyhorse_video), [infinitalk_lip_sync](#infinitalk_lip_sync), [kling_4_video](#kling_4_video), [kling_avatar](#kling_avatar), [kling_omni_video](#kling_omni_video), [kling_video](#kling_video), [omnihuman_video](#omnihuman_video), [pixverse_video](#pixverse_video), [runway_aleph_video](#runway_aleph_video), [topaz_upscale_video](#topaz_upscale_video), [veo3_generate_video](#veo3_generate_video), [veo3_get_1080p_video](#veo3_get_1080p_video), [vidu_video](#vidu_video), [wan_animate](#wan_animate), [wan_video](#wan_video)
+- **Audio:** [elevenlabs_dialogue](#elevenlabs_dialogue), [elevenlabs_tts](#elevenlabs_tts), [elevenlabs_ttsfx](#elevenlabs_ttsfx), [gemini_tts](#gemini_tts), [suno_generate_music](#suno_generate_music)
 - **Utility:** [finalize_upload](#finalize_upload), [get_task_status](#get_task_status), [get_upload_url](#get_upload_url), [list_models](#list_models), [list_tasks](#list_tasks), [prepare_media_generation](#prepare_media_generation), [submit_media_generation](#submit_media_generation), [upload_file](#upload_file), [upload_widget](#upload_widget), [wait_for_task](#wait_for_task)
 
 ---
@@ -70,9 +70,46 @@ Generate and edit images using Black Forest Labs' Flux 2 models (Pro/Flex) with 
 | `model_type` | `pro` / `flex` | no | Model variant: 'pro' for fast reliable results, 'flex' for more control and fine-tuning. (default: `"pro"`) |
 | `callBackUrl` | string | no | Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided) |
 
+### flux3_klein_image
+
+Generate or edit images with FLUX 3 Klein (fast and cheap: 1.6 credits at 1K). Text-to-image, or edit with up to 10 input images. 1K-4K or custom size, 1-4 images.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `prompt` | string | yes | Prompt or edit instruction (max 5000 chars) |
+| `image_urls` | array | no | 1-10 input images -> edit mode (JPG/PNG/WebP, max 30MB) |
+| `aspect_ratio` | `1:1` / `4:3` / `3:4` / `3:2` / `2:3` / `16:9` / `9:16` / `21:9` / `9:21` / `auto` | no | Default 1:1 (generate) / auto = first input image (edit) |
+| `resolution` | `1K` / `2K` / `4K` | no | 1K (1.6 credits), 2K (2.5), 4K (6.5) per image (default: `"1K"`) |
+| `width` | integer | no | Custom width; needs height |
+| `height` | integer | no | Custom height; needs width |
+| `output_format` | `png` / `jpeg` / `webp` | no |  (default: `"png"`) |
+| `num_images` | integer | no | 1-4 images (default: `1`) |
+| `seed` | integer | no |  |
+| `enhance_prompt` | boolean | no | Let FLUX rewrite the prompt (default true) |
+| `nsfw_checker` | boolean | no | Extra NSFW filtering (default false) |
+| `callBackUrl` | string | no |  |
+
 ### gpt_image
 
 Generate and edit images using GPT Image 2.5 Flare or Sunburst with up to 16 references, 1K/2K/4K output, and background control. The old `gpt_image_2` name is retired.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `model` | `flare` / `sunburst` | no | GPT Image 2.5 variant; GPT Image 2 routing is removed (default: `"flare"`) |
+| `prompt` | string | yes | Text prompt describing the desired image (max 20000 characters) |
+| `input_urls` | array | no | Array of up to 16 image URLs for image-to-image mode. Omit for text-to-image. |
+| `aspect_ratio` | `auto` / `1:1` / `3:2` / `2:3` / `4:3` / `3:4` / `16:9` / `9:16` / `21:9` / `27:16` / `16:27` / `9:8` / `8:9` | no | Image aspect ratio (default: `"auto"`) |
+| `resolution` | `1K` / `2K` / `4K` | no | Output resolution (default: `"1K"`) |
+| `background` | `transparent` / `opaque` / `auto` | no | Image background |
+| `callBackUrl` | string | no | Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided) |
+
+### gpt_image_2
+
+Alias of `gpt_image` (old name, kept for existing workflows). Generate and edit images using GPT Image 2.5 Flare or Sunburst with up to 16 references, 1K/2K/4K output, and background control. Prefer `gpt_image` for new work.
 
 #### Parameters
 
@@ -140,13 +177,13 @@ Generate images and videos using Midjourney AI models (unified tool for text-to-
 
 ### nano_banana_image
 
-Generate and edit images using Nano Banana 2 or the faster 1K Nano Banana 2 Lite. Nano Banana 2 supports 4K, 14 references, and Google Search grounding; Lite supports up to 10 references.
+Generate and edit images using Nano Banana 2, the faster 1K Nano Banana 2 Lite, Nano Banana Pro or Nano Banana 2.1. Nano Banana 2 supports 4K, 14 references, and Google Search grounding; Lite supports up to 10 references; Pro up to 8 and 2.1 up to 10 references at up to 4K.
 
 #### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `model` | `nano-banana-2` / `nano-banana-2-lite` | no | Nano Banana model: nano-banana-2 supports up to 4K and 14 references; nano-banana-2-lite is the faster 1K model with up to 10 references (default: `"nano-banana-2"`) |
+| `model` | `nano-banana-2` / `nano-banana-2-lite` / `nano-banana-pro` / `nano-banana-2-1` | no | Nano Banana model: nano-banana-2 supports up to 4K and 14 references; nano-banana-2-lite is the faster 1K model with up to 10 references; nano-banana-pro (up to 4K, 8 references, no 1:4/4:1/1:8/8:1); nano-banana-2-1 (up to 4K, 10 references) (default: `"nano-banana-2"`) |
 | `prompt` | string | no | Text prompt for image generation or editing (max 20000 chars). Nano Banana models support up to 20K characters. |
 | `image_input` | array | no | Array of reference image URLs for editing mode (up to 14 images for multi-reference) |
 | `output_format` | `png` / `jpg` | no | Output format for generate/edit modes (default: `"png"`) |
@@ -350,6 +387,29 @@ Generate AI lip-sync talking videos using MeiGen-AI InfiniTalk. Transforms portr
 | `seed` | integer | no | Random seed for reproducibility (10000-1000000) |
 | `callBackUrl` | string | no | Optional: URL for task completion notifications |
 
+### kling_4_video
+
+Generate videos with Kling 4.0: reference-to-video (up to 10 images, 5 videos, 7 subjects, 3 voices, or plain text) or keyframe-to-video (first, middle and last frames). 3-30s, 720p/1080p, native audio. Mode is auto-detected.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `mode` | `reference-to-video` / `keyframe-to-video` | no | Optional. Auto: first_frame_url / keyframe_urls / last_frame_url -> keyframe-to-video, else reference-to-video (also plain text-to-video) |
+| `prompt` | string | yes | Prompt (max 8000 chars). Mentions: @image_1, @video_1, @<element/voice name>; keyframe mode: @first_frame, @keyframe_1, @last_frame |
+| `duration` | integer | no | Duration in seconds (3-30, default 5) (default: `5`) |
+| `resolution` | `720p` / `1080p` | no | Output resolution (default 720p) (default: `"720p"`) |
+| `aspect_ratio` | `auto` / `16:9` / `9:16` / `1:1` / `21:9` | no | Aspect ratio. Default: auto with references/frames, else 16:9 |
+| `image_urls` | array | no | reference-to-video: up to 10 reference images (@image_N) |
+| `video_urls` | array | no | reference-to-video: up to 5 reference videos, 2-30s each (@video_N) |
+| `keep_original_sound` | boolean | no | Keep the reference video's sound (only with video_urls) |
+| `elements` | array | no | reference-to-video: up to 7 subjects (max 3 video subjects) |
+| `voices` | array | no | reference-to-video: up to 3 named voices (@name) |
+| `first_frame_url` | string | no | keyframe-to-video: first frame |
+| `keyframe_urls` | array | no | keyframe-to-video: middle frames in order (limited by duration) |
+| `last_frame_url` | string | no | keyframe-to-video: last frame |
+| `callBackUrl` | string | no |  |
+
 ### kling_avatar
 
 Generate lifelike talking avatar videos using Kuaishou Kling AI. Transforms portrait photo and audio into a realistic avatar with accurate lip-sync, emotions, and identity preservation.
@@ -363,6 +423,28 @@ Generate lifelike talking avatar videos using Kuaishou Kling AI. Transforms port
 | `prompt` | string | yes | Text prompt to guide video generation (emotions, expressions, scene settings) |
 | `quality` | `standard` / `pro` | no | Video quality: standard (720P, faster) or pro (1080P, higher quality) (default: `"standard"`) |
 | `callBackUrl` | string | no | Optional: URL for task completion notifications |
+
+### kling_omni_video
+
+Generate videos with Kling 3.0 Omni: text-to-video, image-to-video (first/last frame), reference-to-video (images, a video, @subjects) and transformation (restyle a video). 3-15s, up to 4K, multi-shot, native audio. Mode is auto-detected.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `mode` | `text-to-video` / `image-to-video` / `reference-to-video` / `transformation` | no | Optional. Auto: video_urls -> reference-to-video, 1-2 image_urls -> image-to-video (first/last frame), 3+ image_urls or elements -> reference-to-video, else text-to-video. transformation (restyle a video) must be set explicitly |
+| `prompt` | string | yes | Video prompt (max 3072 chars). Reference subjects as @name |
+| `image_urls` | array | no | image-to-video: 1 (first frame) or 2 (first + last frame). reference-to-video: up to 7 reference images (up to 4 with a video). JPG/PNG, min 300px |
+| `video_urls` | array | no | Exactly 1 reference/source video (MP4/MOV, 3-15.5s, max 200MB) for reference-to-video or transformation |
+| `duration` | integer | no | Duration in seconds (3-15, default 5) (default: `5`) |
+| `resolution` | `720p` / `1080p` / `4k` | no | Output resolution (default 720p) (default: `"720p"`) |
+| `aspect_ratio` | `16:9` / `9:16` / `1:1` / `auto` | no | 16:9, 9:16, 1:1, or auto (follow the first frame / source video). Default: auto for image-to-video and video input, else 16:9 |
+| `audio` | boolean | no | Generate native audio (default false). Always false when a video is provided |
+| `customize_multi_shots` | boolean | no | Use your own shots from multi_prompt |
+| `prefer_multi_shots` | boolean | no | Let Kling split the prompt into shots automatically |
+| `multi_prompt` | array | no | Up to 6 shots (prompt + duration); total <= 15s. Needs customize_multi_shots=true |
+| `elements` | array | no | Subjects (characters, objects) referenced as @name in the prompt |
+| `callBackUrl` | string | no |  |
 
 ### kling_video
 
@@ -400,6 +482,23 @@ Animate a portrait, pet, or character from an image and audio using ByteDance Om
 | `seed` | integer | no |  (default: `-1`) |
 | `callBackUrl` | string | no |  |
 
+### pixverse_video
+
+Generate videos with PixVerse V6 Max: text-to-video or image-to-video (one start image), 1-15s, 360p-1080p, optional native audio.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `prompt` | string | yes | Video prompt (max 5000 chars) |
+| `image_url` | string | no | Optional start image -> image-to-video (JPG/PNG/WebP, max 20MB). Output follows the image's aspect ratio |
+| `aspect_ratio` | `16:9` / `4:3` / `1:1` / `3:4` / `9:16` / `2:3` / `3:2` / `21:9` | no | Text-to-video only (default 16:9); ignored with image_url (default: `"16:9"`) |
+| `quality` | `360p` / `540p` / `720p` / `1080p` | no | Output quality (default 720p) (default: `"720p"`) |
+| `duration` | integer | no | Duration in seconds (1-15, default 5) (default: `5`) |
+| `generate_audio` | boolean | no | Generate native synced audio (default false) (default: `false`) |
+| `seed` | integer | no |  |
+| `callBackUrl` | string | no |  |
+
 ### runway_aleph_video
 
 Transform videos using Runway Aleph video-to-video generation with AI-powered editing
@@ -416,6 +515,18 @@ Transform videos using Runway Aleph video-to-video generation with AI-powered ed
 | `seed` | integer | no | Random seed for reproducible results (1-999999) |
 | `referenceImage` | string | no | URL of reference image for style guidance |
 | `callBackUrl` | string | no | Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided) |
+
+### topaz_upscale_video
+
+Upscale and enhance a video with Topaz (1x, 2x or 4x). Input MP4, MOV or MKV up to 50MB.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `video_url` | string | yes | Video URL to upscale (MP4, MOV or MKV, max 50MB) |
+| `upscale_factor` | `1` / `2` / `4` | no | Upscale factor (default 2). 1 = enhance without enlarging (default: `"2"`) |
+| `callBackUrl` | string | no |  |
 
 ### veo3_generate_video
 
@@ -445,6 +556,24 @@ Get 1080P high-definition version of a Veo3 video (not available for fallback mo
 | --- | --- | --- | --- |
 | `task_id` | string | yes | Veo3 task ID to get 1080p video for |
 | `index` | integer | no | Video index (optional, for multiple video results) |
+
+### vidu_video
+
+Generate videos with Vidu Q4: image-to-video (one start image) or reference-to-video (up to 15 reference images and 3 voice clips). 3-16s, up to 4K, audio on by default.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `prompt` | string | no | Prompt (max 20000 chars). Required for reference-to-video; refer to inputs as 'reference image 2' |
+| `image_url` | string | no | Start image -> image-to-video (JPG/PNG/WebP, max 50MB) |
+| `reference_image_urls` | array | no | 1-15 reference images -> reference-to-video |
+| `reference_audio_urls` | array | no | reference-to-video: up to 3 MP3 voice clips (3-12s each) |
+| `duration` | integer | no | Duration in seconds (3-16, default 5) (default: `5`) |
+| `resolution` | `540p` / `720p` / `1080p` / `2k` / `4k` | no | Output resolution (default 720p) (default: `"720p"`) |
+| `audio` | boolean | no | Dialogue and sound effects (default true) (default: `true`) |
+| `aspect_ratio` | `16:9` / `9:16` / `1:1` / `4:3` / `3:4` | no | reference-to-video only (default 16:9) |
+| `callBackUrl` | string | no |  |
 
 ### wan_animate
 
@@ -487,6 +616,19 @@ Generate videos using Alibaba Wan 3.0 standard or high-speed Prime with text, fi
 
 ## Audio tools
 
+### elevenlabs_dialogue
+
+Multi-voice dialogue with ElevenLabs v3 (text-to-dialogue): several lines with different voices, audio tags like [laughs], 70+ languages, up to 5000 characters.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `dialogue` | array | yes | Dialogue lines in order; total text max 5000 characters |
+| `stability` | any | no | 0 creative, 0.5 natural (default), 1 robust (default: `0.5`) |
+| `language_code` | string | no | ISO language code, e.g. de, en. Omit for auto-detect |
+| `callBackUrl` | string | no |  |
+
 ### elevenlabs_tts
 
 Generate speech from text using ElevenLabs TTS models (Turbo 2.5 by default, with optional Multilingual v2 support)
@@ -522,6 +664,25 @@ Generate sound effects from text descriptions using ElevenLabs Sound Effects v2 
 | `prompt_influence` | number | no | How closely to follow the prompt (0-1). Higher values mean less variation (default: `0.3`) |
 | `output_format` | `mp3_22050_32` / `mp3_44100_32` / `mp3_44100_64` / `mp3_44100_96` / `mp3_44100_128` / `mp3_44100_192` / `pcm_8000` / `pcm_16000` / `pcm_22050` / `pcm_24000` / `pcm_44100` / `pcm_48000` / `ulaw_8000` / `alaw_8000` / `opus_48000_32` / `opus_48000_64` / `opus_48000_96` / `opus_48000_128` / `opus_48000_192` | no | Output format of the generated audio (default: `"mp3_44100_192"`) |
 | `callBackUrl` | string | no | Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided) |
+
+### gemini_tts
+
+Text-to-speech and multi-speaker dialogue with Google Gemini TTS (3.8 Flash, 3.8 Flash Lite, 3.1 Flash, 2.5 Pro). 30-70 voices, inline emotion tags, voice clone (3.8). Output WAV. Use text + voice_name for one speaker.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `model` | `google/gemini-3-8-flash-tts` / `google/gemini-3-8-flash-lite-tts` / `google/gemini-3-1-flash-tts` / `google/gemini-2-5-pro-tts` | no | Gemini TTS model (default 3.8 Flash: 70 voices, voice clone, inline tags like <laugh>). 3.1 Flash / 2.5 Pro: 30 voices with accent, style, pace (default: `"google/gemini-3-8-flash-tts"`) |
+| `text` | string | no | Shortcut for one speaker: the text to speak (instead of dialogue_turns) |
+| `voice_name` | string | no | Shortcut voice for the single speaker |
+| `speakers` | array | no | Speakers for multi-speaker dialogue |
+| `dialogue_turns` | array | no | Ordered dialogue turns |
+| `temperature` | number | no | 0-2 (default 1) |
+| `scene` | string | no | 3.1 / 2.5 only: scene description |
+| `sample_context` | string | no | 3.1 / 2.5 only: overall tone |
+| `filler_words` | boolean | no | 3.8 only, two speakers: add natural filler words |
+| `callBackUrl` | string | no |  |
 
 ### suno_generate_music
 

@@ -15,6 +15,77 @@ const marketDocs = "https://docs.kie.ai/market-api/quickstart";
  * with the registered tools that own them.
  */
 export const MODEL_CATALOG: ModelCatalogEntry[] = [
+  // fork models (oliverhees)
+  {
+    toolName: "kling_omni_video",
+    model: "kling-3.0-omni/text-to-video",
+    capabilities: [
+      "text to video",
+      "image to video",
+      "reference to video",
+      "video transformation",
+    ],
+    description:
+      "Kling 3.0 Omni text, image, reference and transformation video.",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/kling/v3-omni-text-to-video",
+  },
+  {
+    toolName: "kling_4_video",
+    model: "kling-4.0/reference-to-video",
+    capabilities: ["text to video", "reference to video", "keyframe to video"],
+    description: "Kling 4.0 reference-to-video and keyframe-to-video.",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/kling/v4-reference-to-video",
+  },
+  {
+    toolName: "pixverse_video",
+    model: "pixverse-v6-max/text-to-video",
+    capabilities: ["text to video", "image to video"],
+    description: "PixVerse V6 Max text-to-video and image-to-video.",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/pixverse/v6-max-text-to-video",
+  },
+  {
+    toolName: "vidu_video",
+    model: "vidu-q4/image-to-video",
+    capabilities: ["image to video", "reference to video"],
+    description: "Vidu Q4 image-to-video and reference-to-video.",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/vidu-q4/image-to-video",
+  },
+  {
+    toolName: "topaz_upscale_video",
+    model: "topaz/video-upscale",
+    capabilities: ["video upscale"],
+    description: "Topaz video upscale (1x, 2x, 4x).",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/topaz/video-upscale",
+  },
+  {
+    toolName: "gemini_tts",
+    model: "google/gemini-3-8-flash-tts",
+    capabilities: ["text to speech", "dialogue", "voice clone"],
+    description: "Gemini 3.8 Flash, 3.8 Flash Lite, 3.1 Flash and 2.5 Pro TTS.",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/google/gemini-3-8-flash-tts",
+  },
+  {
+    toolName: "elevenlabs_dialogue",
+    model: "elevenlabs/text-to-dialogue-v3",
+    capabilities: ["dialogue", "text to speech"],
+    description: "ElevenLabs v3 multi-voice text-to-dialogue.",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/elevenlabs/text-to-dialogue-v3",
+  },
+  {
+    toolName: "flux3_klein_image",
+    model: "flux-3/klein-text-to-image",
+    capabilities: ["image generation", "image editing"],
+    description: "FLUX 3 Klein text-to-image and image editing.",
+    status: "active",
+    evidenceUrl: "https://docs.kie.ai/market/flux3/klein-text-to-image",
+  },
   {
     toolName: "nano_banana_image",
     model: "nano-banana-2",

@@ -1,11 +1,14 @@
 import { bytedanceSeedanceVideoTool } from "./bytedance_seedance_video.js";
 import { bytedanceSeedreamImageTool } from "./bytedance_seedream_image.js";
+import { elevenlabsDialogueTool } from "./elevenlabs_dialogue.js";
 import { elevenlabsTtsTool } from "./elevenlabs_tts.js";
 import { elevenlabsTtsfxTool } from "./elevenlabs_ttsfx.js";
 import { finalizeUploadTool } from "./finalize_upload.js";
 import { fluxKontextImageTool } from "./flux_kontext_image.js";
 import { flux2ImageTool } from "./flux2_image.js";
+import { flux3KleinImageTool } from "./flux3_klein_image.js";
 import { geminiOmniTool } from "./gemini_omni.js";
+import { geminiTtsTool } from "./gemini_tts.js";
 import { getTaskStatusTool } from "./get_task_status.js";
 import { getUploadUrlTool } from "./get_upload_url.js";
 import { gptImageTool } from "./gpt_image.js";
@@ -15,13 +18,16 @@ import { hailuoVideoTool } from "./hailuo_video.js";
 import { happyhorseVideoTool } from "./happyhorse_video.js";
 import { ideogramReframeTool } from "./ideogram_reframe.js";
 import { infinitalkLipSyncTool } from "./infinitalk_lip_sync.js";
+import { kling4VideoTool } from "./kling_4_video.js";
 import { klingAvatarTool } from "./kling_avatar.js";
+import { klingOmniVideoTool } from "./kling_omni_video.js";
 import { klingVideoTool } from "./kling_video.js";
 import { listModelsTool } from "./list_models.js";
 import { listTasksTool } from "./list_tasks.js";
 import { midjourneyGenerateTool } from "./midjourney_generate.js";
 import { nanoBananaImageTool } from "./nano_banana_image.js";
 import { omniHumanVideoTool } from "./omnihuman_video.js";
+import { pixverseVideoTool } from "./pixverse_video.js";
 import { prepareMediaGenerationTool } from "./prepare_media_generation.js";
 import { qwenImageTool } from "./qwen_image.js";
 import { recraftRemoveBackgroundTool } from "./recraft_remove_background.js";
@@ -29,11 +35,13 @@ import { runwayAlephVideoTool } from "./runway_aleph_video.js";
 import { submitMediaGenerationTool } from "./submit_media_generation.js";
 import { sunoGenerateMusicTool } from "./suno_generate_music.js";
 import { topazUpscaleImageTool } from "./topaz_upscale_image.js";
+import { topazUpscaleVideoTool } from "./topaz_upscale_video.js";
 import type { ToolDef } from "./types.js";
 import { uploadFileTool } from "./upload_file.js";
 import { UPLOAD_WIDGET_URI, uploadWidgetTool } from "./upload_widget.js";
 import { veo3GenerateVideoTool } from "./veo3_generate_video.js";
 import { veo3Get1080pVideoTool } from "./veo3_get_1080p_video.js";
+import { viduVideoTool } from "./vidu_video.js";
 import { waitForTaskTool } from "./wait_for_task.js";
 import { wanAnimateTool } from "./wan_animate.js";
 import { wanImageTool } from "./wan_image.js";
@@ -60,6 +68,14 @@ export const TOOL_REGISTRY: ToolDef[] = [
   geminiOmniTool,
   gptImageTool,
   gptImage2AliasTool,
+  klingOmniVideoTool,
+  kling4VideoTool,
+  pixverseVideoTool,
+  viduVideoTool,
+  topazUpscaleVideoTool,
+  geminiTtsTool,
+  elevenlabsDialogueTool,
+  flux3KleinImageTool,
   grokImagineTool,
   hailuoVideoTool,
   happyhorseVideoTool,
