@@ -17,6 +17,7 @@ const EXPECTED_TOOL_NAMES = [
   "get_task_status",
   "get_upload_url",
   "gpt_image",
+  "gpt_image_2",
   "gemini_omni",
   "grok_imagine",
   "hailuo_video",

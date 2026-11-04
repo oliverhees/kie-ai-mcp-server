@@ -1,10 +1,11 @@
 # 🎨 Kie.ai MCP Server — Self-Hosted Edition
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![MCP](https://img.shields.io/badge/Model_Context_Protocol-1.x-blue)](https://modelcontextprotocol.io)
+[![Version](https://img.shields.io/badge/MCP_Server-5.6.2-informational)](CHANGELOG.md)
+[![MCP](https://img.shields.io/badge/Model_Context_Protocol-SDK_v2-blue)](https://modelcontextprotocol.io)
 [![Transport](https://img.shields.io/badge/transport-stdio%20%7C%20streamable--http-green)](#-schnellstart)
 [![Deploy](https://img.shields.io/badge/deploy-Coolify%20%7C%20Docker-8b5cf6)](#-self-hosting-mit-coolify-empfohlen)
-[![AI Tools](https://img.shields.io/badge/AI_tools-28-orange)](#-was-du-bekommst)
+[![AI Tools](https://img.shields.io/badge/AI_tools-29-orange)](#-was-du-bekommst)
 
 [🇬🇧 English](README.md) · [🇩🇪 Deutsch](README.de.md)
 
@@ -12,18 +13,21 @@
 
 **Ein MCP-Server für State-of-the-Art-KI-Generierung — Video, Bilder, Musik, Audio — auf _deinem eigenen_ Server.**
 
-Das ist eine self-hostbare Variante des Kie.ai-MCP-Servers: dieselben 28 KI-Tools, plus einen **Remote-Transport über Streamable HTTP**, damit du ihn auf deiner eigenen Infrastruktur deployen (Coolify-first), von überall erreichen und API-Key wie Daten auf deinem eigenen Server behalten kannst.
+Das ist eine self-hostbare Variante des Kie.ai-MCP-Servers: alle 29 KI-Tools des Originals (Stand **5.6.2**), mit fertigem **Coolify-Deploy über Streamable HTTP**, damit du ihn auf deiner eigenen Infrastruktur betreiben, von überall erreichen und API-Key wie Daten auf deinem eigenen Server behalten kannst.
+
+> 🆕 **Update November 2026:** Der Fork basiert jetzt auf dem Original 5.6.2 (Monorepo mit MCP-Server, CLI und Agent-Skill). Alte Coolify-Variablen (`MCP_AUTH_TOKEN`, `PORT`, `HOST`) und der alte Tool-Name `gpt_image_2` funktionieren weiter. Details im [CHANGELOG](CHANGELOG.md).
 
 ---
 
 ## ⚡ Worum geht's
 
-Der ursprüngliche [kie-ai-mcp-server von felores](https://github.com/felores/kie-ai-mcp-server) ist ein hervorragender stdio-MCP-Server — er läuft lokal als Subprozess deines KI-Clients. Dieser Fork ergänzt genau das, was du brauchst, um ihn **als Dienst zu betreiben**:
+Der ursprüngliche [kie-ai-mcp-server von felores](https://github.com/felores/kie-ai-mcp-server) bringt inzwischen selbst einen Remote-Transport mit. Dieser Fork macht daraus einen **Coolify-Dienst ohne Gefrickel**:
 
 - 🌐 **Remote-Transport (Streamable HTTP)** — über das Netzwerk erreichbar, nicht nur lokal
-- 🔐 **Bearer-Token-Auth** — nur du verbrauchst deine Credits
-- 🐳 **Docker- & Coolify-Deploy** — ein Compose-File, automatisches HTTPS
-- ♻️ **Dual-Transport** — `stdio` bleibt Standard, lokale Nutzung bricht nicht
+- 🔐 **Bearer-Token-Auth + Host-Schutz** — nur du verbrauchst deine Credits
+- 🐳 **Coolify-Compose** — Domain wird automatisch als erlaubter Host übernommen
+- ♻️ **Abwärtskompatibel** — alte Variablen-Namen, alter Volume-Name, Alias `gpt_image_2`
+- 💻 **`stdio` bleibt Standard** — lokale Nutzung bricht nicht
 
 Ideal als erster MCP hinter einem self-gehosteten Gateway wie [MetaMCP](https://github.com/metatool-ai/metamcp) oder [MCPJungle](https://github.com/mcpjungle/MCPJungle).
 
@@ -76,31 +80,33 @@ Direkt aus diesem Repo deployen. Coolify baut das Image und stellt HTTPS bereit.
 ```bash
 SERVICE_FQDN_KIEAIMCP_3000=kie-mcp.deine-domain.tld   # deine Subdomain — Coolify ergänzt TLS
 KIE_AI_API_KEY=dein-kie-ai-api-key                    # von https://kie.ai/api-key
-MCP_AUTH_TOKEN=$(openssl rand -hex 32)                # geheimes Bearer-Token — siehe Hinweis
+KIE_MCP_HTTP_TOKEN=$(openssl rand -hex 32)            # geheimes Bearer-Token (alt: MCP_AUTH_TOKEN)
 ```
 
-> ⚠️ **Setze immer `MCP_AUTH_TOKEN`.** Ohne ist der `/mcp`-Endpoint **offen**, und jeder mit der URL kann deine Kie.ai-Credits verbrauchen. Token erzeugen mit `openssl rand -hex 32`.
+> ⚠️ **Ohne Token startet der Server nicht.** Er lauscht öffentlich, darum ist das Token Pflicht. Token erzeugen mit `openssl rand -hex 32`. Der alte Name `MCP_AUTH_TOKEN` funktioniert weiter.
+
+> 🛡️ **Host-Schutz:** Der Server nimmt nur Anfragen an deine Domain an. `MCP_ALLOWED_HOSTS` wird automatisch aus der Coolify-Domain gesetzt. Nur bei mehreren Domains selbst setzen (kommagetrennt).
 
 > 💡 **Diese drei reichen.** Eine Callback-URL brauchst du **nicht** — der Server pollt den Task-Status selbst und empfängt keine Callbacks. Lass `KIE_AI_CALLBACK_URL` einfach weg (es gibt einen eingebauten Fallback auf kie.ais eigenen Proxy).
 
-**4. Deploy.** Der Build kompiliert das native `sqlite3`-Addon (~1–2 Min) und holt anschließend ein TLS-Zertifikat.
+**4. Deploy.** Der Build dauert ~1–3 Min und holt anschließend ein TLS-Zertifikat.
 
 **5. Verifizieren**
 
 ```bash
 curl https://kie-mcp.deine-domain.tld/health
-# → {"status":"ok","transport":"streamable-http","sessions":0}
+# → {"status":"ok","transport":"streamable-http","sessions":0,"version":"5.6.2"}
 ```
 
-Die SQLite-Task-Historie liegt auf dem `/data`-Volume und überlebt damit Redeploys.
+Die SQLite-Task-Historie liegt auf dem `/data`-Volume (`kie-ai-data`) und überlebt damit Redeploys — auch das Update von 3.x auf 5.x.
 
 ### 🔌 Client anbinden
 
 | Client | URL | Auth |
 |--------|-----|------|
-| **claude.ai** (Custom Connector) | `https://kie-mcp.deine-domain.tld/mcp` | Bearer `MCP_AUTH_TOKEN` |
+| **claude.ai** (Custom Connector) | `https://kie-mcp.deine-domain.tld/mcp` | Bearer-Token |
 | **Claude Desktop / Cursor** | gleiche URL (über Streamable HTTP / `mcp-remote`) | `Authorization: Bearer …` |
-| **MetaMCP / MCPJungle** | als Streamable-HTTP-Server registrieren, gleiche URL + Token | Bearer `MCP_AUTH_TOKEN` |
+| **MetaMCP / MCPJungle** | als Streamable-HTTP-Server registrieren, gleiche URL + Token | Bearer-Token |
 
 ---
 
@@ -131,10 +137,12 @@ Funktioniert mit Claude Desktop, Cursor, Windsurf, VS Code, Claude Code und mehr
 | Variable | Standard | Zweck |
 |----------|----------|-------|
 | `MCP_TRANSPORT` | `stdio` | `stdio` (lokal) oder `http` (remote Streamable HTTP) |
-| `PORT` / `HOST` | `3000` / `0.0.0.0` | HTTP-Bindung (http-Modus) |
-| `MCP_AUTH_TOKEN` | — | Bearer-Token; **bei öffentlichem Betrieb setzen** |
-| `MCP_HTTP_PATH` | `/mcp` | Pfad des MCP-Endpoints |
-| `MCP_CORS_ORIGIN` | `*` | CORS-Origin für Browser-Clients (claude.ai) |
+| `MCP_HTTP_PORT` / `MCP_HTTP_HOST` | `3000` / `0.0.0.0` (Docker) | HTTP-Bindung (alt: `PORT` / `HOST`) |
+| `KIE_MCP_HTTP_TOKEN` | — | Bearer-Token, **Pflicht bei öffentlichem Betrieb** (alt: `MCP_AUTH_TOKEN`) |
+| `MCP_ALLOWED_HOSTS` | Coolify-Domain | Erlaubte Host-Namen, kommagetrennt |
+| `MCP_ALLOWED_ORIGINS` | alle | Erlaubte Browser-Origins (alt: `MCP_CORS_ORIGIN`) |
+
+Der MCP-Endpoint ist immer `/mcp` (`MCP_HTTP_PATH` gibt es nicht mehr). Uploads, Tasks und weitere Optionen: siehe [`.env.example`](.env.example) und die [englische README](README.md).
 
 ### Kie.ai
 
@@ -160,23 +168,27 @@ Priorität: `ENABLED_TOOLS` > `TOOL_CATEGORIES` > `DISABLED_TOOLS` > alle. Utili
 
 ## 🎨 Was du bekommst
 
-**28 vereinheitlichte KI-Tools** über Bild, Video und Audio — Veo 3, Nano Banana 2, Suno V5, ElevenLabs, ByteDance Seedance/Seedream, Qwen, GPT Image 2, Flux Kontext, Wan 2.7, Hailuo, Kling, Midjourney, Runway Aleph, Topaz, Recraft, Ideogram und mehr. Jedes Tool erkennt den Modus automatisch (Generieren / Bearbeiten / Hochskalieren in einem).
+**29 vereinheitlichte KI-Tools** über Bild, Video und Audio — Veo 3, Nano Banana, Suno, ElevenLabs, ByteDance Seedance 2.5/Seedream, Qwen, GPT Image 2.5 (`gpt_image`, Alias `gpt_image_2`), Flux 2, Flux Kontext, Wan 3.0 + Wan Image, Gemini Omni, OmniHuman, HappyHorse, Hailuo, Kling 3.0, Midjourney, Runway Aleph, Topaz, Recraft, Ideogram und mehr. Dazu Planung mit Preis-Vorschau (`prepare_media_generation` / `submit_media_generation`) und `wait_for_task`. Jedes Tool erkennt den Modus automatisch (Generieren / Bearbeiten / Hochskalieren in einem).
 
 **→ [Komplette Tool-Referenz](docs/TOOLS.md)** · [Datenbank & Tasks](docs/DATABASE.md) · [Admin-Konfiguration](docs/ADMIN.md)
 
 ## 🔑 Kern-Features
 
 - 🌐 **Remote-fähig** — Streamable-HTTP-Transport mit Sessions
-- 🔐 **Auth eingebaut** — Bearer-Token-Schutz, offener `/health` für Healthchecks
-- 🐳 **Coolify-/Docker-Deploy** — Multi-Stage-Image, persistentes DB-Volume
+- 🔐 **Auth eingebaut** — Bearer-Token + Host-Schutz, offener `/health` für Healthchecks
+- 🐳 **Coolify-/Docker-Deploy** — Multi-Stage-Image, läuft ohne root, persistentes DB-Volume
 - 🎯 **Ein API-Key** für alle Modelle · 🔄 **SQLite-Task-Tracking**, das Neustarts überlebt
 - 🧠 **Smarte Kostenkontrolle** — wählt standardmäßig die günstigste Stufe, außer du forderst Qualität
 
 ## 🆘 Fehlerbehebung
 
-**`401` auf `/mcp`** — dein Client sendet kein `Authorization: Bearer <MCP_AUTH_TOKEN>`, oder das Token passt nicht.
+**`401` auf `/mcp`** — dein Client sendet kein `Authorization: Bearer <Token>`, oder das Token passt nicht.
 
-**Coolify-Build schlägt fehl** — prüfe, ob der Compose-Pfad `docker-compose.coolify.yml` und der Branch korrekt ist. Das `sqlite3`-Addon braucht die Build-Tools der Build-Stage (im Dockerfile bereits enthalten).
+**`403 Invalid Host header`** — die Domain fehlt in `MCP_ALLOWED_HOSTS`. Setze sie in Coolify (z. B. `kie-mcp.deine-domain.tld`).
+
+**Container startet nicht: „KIE_MCP_HTTP_TOKEN … is required“** — kein Token gesetzt. `KIE_MCP_HTTP_TOKEN` (oder alt `MCP_AUTH_TOKEN`) in Coolify eintragen.
+
+**Coolify-Build schlägt fehl** — prüfe, ob der Compose-Pfad `docker-compose.coolify.yml` und der Branch korrekt ist. 
 
 **`/health` antwortet direkt nach dem Deploy nicht** — der Server braucht ~1–4 s zum Hochfahren (große Tool-Registry). Der `start_period` des Healthchecks deckt das ab; einfach einen Moment warten.
 
@@ -184,7 +196,7 @@ Priorität: `ENABLED_TOOLS` > `TOOL_CATEGORIES` > `DISABLED_TOOLS` > alle. Utili
 
 ## 🙏 Credits
 
-- **[felores/kie-ai-mcp-server](https://github.com/felores/kie-ai-mcp-server)** — der ursprüngliche MCP-Server und alle 28 KI-Tools. Diese Edition ergänzt nur den Remote-/Self-Hosting-Layer.
+- **[felores/kie-ai-mcp-server](https://github.com/felores/kie-ai-mcp-server)** — der ursprüngliche MCP-Server, CLI und alle KI-Tools. Diese Edition ergänzt nur den Coolify-/Kompatibilitäts-Layer.
 - **[Kie.ai](https://kie.ai)** — die vereinheitlichte KI-Generierungs-API.
 - **[Model Context Protocol](https://modelcontextprotocol.io)** — der offene Standard, auf dem das aufbaut.
 

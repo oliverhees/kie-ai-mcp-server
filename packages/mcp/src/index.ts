@@ -38,6 +38,7 @@ import {
   toolOutputSchema,
 } from "./discovery.js";
 import { startHttpServer } from "./http-transport.js";
+import { applyLegacyEnv } from "./legacy-env.js";
 import {
   approvalInputRequired,
   requestMcpPlanApproval,
@@ -79,6 +80,7 @@ export class KieAiMcpServer {
       "bytedance_seedream_image",
       "qwen_image",
       "gpt_image",
+      "gpt_image_2", // fork alias of gpt_image
       "wan_image",
       "flux_kontext_image",
       "flux2_image",
@@ -1488,6 +1490,12 @@ export async function startMcpServer(): Promise<void> {
   // or the --http flag.
   const useHttp =
     process.env.MCP_TRANSPORT === "http" || process.argv.includes("--http");
+  if (useHttp) {
+    // Fork: accept the old 3.x env names (MCP_AUTH_TOKEN, PORT, HOST).
+    for (const note of applyLegacyEnv()) {
+      console.error(`[Kie.ai MCP] legacy env: ${note}`);
+    }
+  }
   const server = new KieAiMcpServer();
   if (useHttp) {
     server.runHttp();

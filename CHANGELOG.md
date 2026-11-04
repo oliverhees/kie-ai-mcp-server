@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Fork (oliverhees) - 2026-11-04
+
+Based on upstream MCP 5.6.2 / CLI 0.14.0 / OpenAI transport 0.11.0. Upgrades the fork from the 3.2.1 "Coolify edition".
+
+### Changed
+- Merged upstream `felores/kie-ai-mcp-server` 5.6.2. The fork's own `src/http-server.ts` is replaced by the upstream Streamable HTTP transport (bearer token, DNS-rebind protection, `/health`).
+- Dependencies refreshed within their ranges: MCP SDK 2.4 (`@modelcontextprotocol/server`, `client`) and `node` 2.1, `zod` 4.6.7 (fixes GHSA-mrhx-c7xc-m3w5), `express` 4.22.3.
+- Root `Dockerfile` and `docker-compose.coolify.yml` build the upstream MCP package and run as the non-root `mcp` user. The entrypoint takes over a root-owned `/data` volume from 3.x once.
+
+### Added
+- Legacy env names for the HTTP transport: `MCP_AUTH_TOKEN` -> `KIE_MCP_HTTP_TOKEN`, `PORT` -> `MCP_HTTP_PORT`, `HOST` -> `MCP_HTTP_HOST`, a specific `MCP_CORS_ORIGIN` -> `MCP_ALLOWED_ORIGINS`. New names win when both are set.
+- `MCP_ALLOWED_HOSTS` is derived from the Coolify domain (`SERVICE_FQDN_*`, `SERVICE_URL_*`, `COOLIFY_FQDN`, `COOLIFY_URL`) when unset.
+- `gpt_image_2` tool as an alias of `gpt_image` (same schema and behavior), so existing skills keep working.
+
+### Removed
+- `MCP_HTTP_PATH`: the endpoint is always `/mcp`. A different value logs a warning.
+
 ## MCP 5.6.2 - 2026-11-01
 
 ### Fixed

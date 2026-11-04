@@ -10,7 +10,9 @@
 </pre>
 </div>
 
-<p align="center">🇬🇧 <b>English</b> &nbsp;·&nbsp; 🇪🇸 <a href="README.es.md">Español</a></p>
+<p align="center">🇬🇧 <b>English</b> &nbsp;·&nbsp; 🇩🇪 <a href="README.de.md">Deutsch</a> &nbsp;·&nbsp; 🇪🇸 <a href="README.es.md">Español</a></p>
+
+> **oliverhees fork — self-hosted / Coolify edition.** Based on upstream [felores/kie-ai-mcp-server](https://github.com/felores/kie-ai-mcp-server) 5.6.2. Fork additions: a root [`docker-compose.coolify.yml`](docker-compose.coolify.yml) + [`Dockerfile`](Dockerfile) that derive `MCP_ALLOWED_HOSTS` from the Coolify domain, keep the 3.x env names (`MCP_AUTH_TOKEN`, `PORT`, `HOST`) and the old `kie-ai-data` volume working, and a `gpt_image_2` alias of `gpt_image`. German guide: [README.de.md](README.de.md).
 
 # Kie.ai CLI + MCP Server + Agent Skill
 

@@ -9,6 +9,7 @@ import { geminiOmniTool } from "./gemini_omni.js";
 import { getTaskStatusTool } from "./get_task_status.js";
 import { getUploadUrlTool } from "./get_upload_url.js";
 import { gptImageTool } from "./gpt_image.js";
+import { gptImage2AliasTool } from "./gpt_image_2.js";
 import { grokImagineTool } from "./grok_imagine.js";
 import { hailuoVideoTool } from "./hailuo_video.js";
 import { happyhorseVideoTool } from "./happyhorse_video.js";
@@ -58,6 +59,7 @@ export const TOOL_REGISTRY: ToolDef[] = [
   getUploadUrlTool,
   geminiOmniTool,
   gptImageTool,
+  gptImage2AliasTool,
   grokImagineTool,
   hailuoVideoTool,
   happyhorseVideoTool,
