@@ -1,0 +1,501 @@
+<div align="center">
+<pre>
+██╗  ██╗██╗███████╗
+██║ ██╔╝██║██╔════╝
+█████╔╝ ██║█████╗  
+██╔═██╗ ██║██╔══╝  
+██║  ██╗██║███████╗
+╚═╝  ╚═╝╚═╝╚══════╝
+ C L I  /  M C P
+</pre>
+</div>
+
+<p align="center">🇬🇧 <a href="README.md">English</a> &nbsp;·&nbsp; 🇪🇸 <b>Español</b></p>
+
+# Kie.ai CLI + Servidor MCP + Skill de Agente
+
+**Una sola API para los mejores modelos de IA de medios (Veo 3, Nano Banana, Suno, Kling, Flux, ElevenLabs, Seedance y más), expuestos a la vez como servidor MCP y como CLI independiente, generados desde un único registro de herramientas.** Genera video, imágenes, música y voz desde Claude, Codex, OpenCode, Pi-mono, o cualquier harness agéntico, o directo desde tu terminal.
+
+> ## ⚡ Eficiente en tokens por diseño
+>
+> Un servidor MCP inyecta el schema de **cada** herramienta en el contexto de tu modelo en **cada turno**: con un catálogo así de grande, son muchos tokens gastados en herramientas que quizá nunca llamas.
+>
+> Esto lo resuelve: carga **solo las herramientas que realmente usas** con `KIE_AI_ENABLED_TOOLS` (o categorías completas con `KIE_AI_TOOL_CATEGORIES`). Tu contexto queda liviano y pagas exactamente la superficie que necesitas, ni más ni menos.
+>
+## Dos formas de usarlo (un núcleo compartido)
+
+El servidor MCP y el CLI se generan desde el mismo registro de herramientas, así que ambos exponen exactamente los mismos modelos y se instalan **de forma independiente**:
+
+- **Servidor MCP**: `@felores/kie-ai-mcp-server`, para Claude Desktop y otros clientes MCP. Ver **Inicio rápido** abajo.
+- **CLI**: `@felores/kie-cli` (binario `kie-cli`), para la terminal, sin cliente MCP: `npm i -g @felores/kie-cli`, luego `kie-cli --help`. Ver [`packages/cli/README.md`](packages/cli/README.md).
+- **Transporte OpenAI**: `@felores/kie-ai-openai-server`, un servidor HTTP local para modelos seleccionados de imagen y video. La versión 0.8 actualiza GPT Image a 2.5 Flare, Qwen a Qwen3 y HappyHorse a 1.1, conservando IDs de compatibilidad. Ver [`docs/openai-transport.md`](docs/openai-transport.md).
+
+El servidor MCP corre localmente por **stdio** por defecto, y también puede correr como un **servicio HTTP remoto** (Streamable HTTP) para que una sola instancia compartida atienda a varios clientes por red. Incluye un **Dockerfile y un compose de Coolify** para autohospedaje en un paso ([guía de despliegue](docs/DEPLOY_HTTP.md)). Ver la sección **Transporte remoto / HTTP** abajo.
+
+## Carga segura de referencias
+
+- `upload_file` envía Base64 validado directamente a Kie. El CLI también puede
+  leer una ruta local solo bajo `KIE_CLI_UPLOAD_ROOTS`. La importación arbitraria
+  desde URLs no está disponible.
+- `upload_widget` muestra un selector minimalista de MCP Apps cuando el host
+  admite recursos `ui://`.
+- Operadores remotos pueden habilitar almacenamiento temporal con capacidades
+  usando `KIE_MCP_PUBLIC_BASE_URL`. La creación ocurre dentro del MCP
+  autenticado. Los capabilities quedan fuera del contenido visible al modelo y
+  solo un `media_id` opaco pasa por la conversación. Consulta
+  [la guía HTTP](docs/DEPLOY_HTTP.md).
+
+## 🚀 Inicio rápido
+
+**Requiere Node.js >= 20** para ejecutar el servidor MCP.
+
+Agrega Kie.ai a tu cliente MCP. Elige cuántas herramientas quieres cargar:
+
+### Cargar todas las herramientas (lo más simple)
+
+```json
+{
+  "mcpServers": {
+    "kie-ai": {
+      "command": "npx",
+      "args": ["-y", "@felores/kie-ai-mcp-server"],
+      "env": {
+        "KIE_AI_API_KEY": "tu-api-key-aqui"
+      }
+    }
+  }
+}
+```
+
+Esto deja disponibles **todas** las herramientas, así que el schema de cada una entra en tu contexto.
+
+### Cargar solo las herramientas que necesitas (ahorra tokens, recomendado)
+
+Agrega `KIE_AI_ENABLED_TOOLS` con una lista separada por comas; solo esas se cargan:
+
+```json
+{
+  "mcpServers": {
+    "kie-ai": {
+      "command": "npx",
+      "args": ["-y", "@felores/kie-ai-mcp-server"],
+      "env": {
+        "KIE_AI_API_KEY": "tu-api-key-aqui",
+        "KIE_AI_ENABLED_TOOLS": "nano_banana_image,veo3_generate_video,suno_generate_music"
+      }
+    }
+  }
+}
+```
+
+Esto carga **solo** esas herramientas (más las de utilidad, siempre activas), manteniendo tu contexto liviano.
+
+**Consigue tu API key gratis:** [kie.ai/api-key](https://kie.ai/api-key). No requiere configurar callback URL, el servidor lo maneja automáticamente.
+
+**Para Claude Desktop:** agrégalo a `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) o `%APPDATA%\Claude\claude_desktop_config.json` (Windows). También funciona con Cursor, Windsurf, VS Code, Claude Code, OpenCode, Droid, y otros.
+
+### 🎛️ Más formas de filtrar
+
+Misma idea, distintas variables de entorno (dentro del bloque `env`, o como exports de shell para el CLI, ej. `export KIE_AI_ENABLED_TOOLS="nano_banana_image,veo3_generate_video"`):
+
+```jsonc
+// Categorías completas en vez de nombrar cada herramienta
+"KIE_AI_TOOL_CATEGORIES": "image,video"
+
+// O carga todo EXCEPTO algunas
+"KIE_AI_DISABLED_TOOLS": "midjourney_generate,runway_aleph_video"
+```
+
+- **Categorías:** `image`, `video`, `audio`, `utility`.
+- **Prioridad:** `ENABLED_TOOLS` > `TOOL_CATEGORIES` > `DISABLED_TOOLS` > todas las herramientas (default).
+- Las herramientas de utilidad, incluyendo seguimiento y carga, están siempre activas y no se pueden desactivar.
+- Tasks oficiales de MCP (experimental, opt-in): define `KIE_AI_MCP_TASKS=true` para declarar la capacidad `tasks`, el `execution.taskSupport` por herramienta y la superficie `tools/call` en modo tarea. El SDK de MCP publicado todavía negocia como máximo 2025-11-25, así que hoy las llamadas en modo tarea se rechazan con un error claro en vez de ejecutarse; la superficie se activa cuando el SDK negocie la revisión 2026-07-28. Las herramientas de estado legacy `get_task_status` / `list_tasks` / `wait_for_task` siguen disponibles en todos los modos.
+- MCP oculta y rechaza por defecto las llamadas directas a herramientas de `image`, `video` y `audio`. Usa `prepare_media_generation`, la elicitación de aprobación del host y `submit_media_generation`. `KIE_AI_ALLOW_DIRECT_GENERATION=true` es el bypass explícito de legado cuando decides desactivar estas salvaguardas de aprobación. El filtrado todavía controla qué herramientas de generación pueden ser objetivos del plan.
+
+## 🤖 Agent skill (opcional)
+
+`skills/kie-ai/` es un skill de Claude Code que le enseña a los agentes a manejar el comando `kie-cli` (descubrir → generar → consultar → resultado), incluyendo cómo instalar el CLI si falta. Los skills cargan **globalmente**, así que instálalo en tu carpeta personal de skills (un skill a nivel proyecto solo se activa dentro de este repo):
+
+```bash
+cp -r skills/kie-ai ~/.claude/skills/kie-ai
+# o con symlink para mantenerlo en sync con el repo:
+ln -s "$PWD/skills/kie-ai" ~/.claude/skills/kie-ai
+```
+
+Después, cualquier sesión puede generar medios en lenguaje natural ("hazme una imagen de…", "convierte esta foto en un video").
+
+## Planificación y aprobación de medios
+
+Usa `list_models` para buscar capacidades con fuentes y luego prepara de una a seis solicitudes en un plan persistente. Preparar valida los schemas destino y aplica defaults seguros, pero nunca llama a un endpoint de generación de Kie.
+
+```json
+{
+  "tool": "prepare_media_generation",
+  "arguments": {
+    "items": [
+      { "tool": "nano_banana_image", "args": { "prompt": "Un panda rojo programando de noche" } }
+    ]
+  }
+}
+```
+
+En clientes MCP que anuncian y manejan `elicitation.form`, la preparación muestra el plan resuelto y el resumen de precio en un formulario de confirmación del host. Solo un formulario aceptado con `confirm: true` aprueba el plan. Rechazos, cancelaciones y confirmaciones incompletas dejan el plan sin aprobar. Los clientes que no anuncian `elicitation` (por ejemplo la pestaña Code de Claude desktop) aprueban en el chat: el agente muestra el plan completo con su precio en créditos y USD y, solo cuando el usuario dice sí con claridad a ese plan exacto, llama a `submit_media_generation` con `approve` igual a `planId`. Equivale a `--approve <plan-id>` del CLI, pasa el plan de `prepared` a `approved` de forma atómica y lo envía. Un `approve` ausente o distinto se rechaza, y los clientes que pueden mostrar el formulario no pueden usar `approve` para saltarlo. Envía solo el ID de un plan aprobado:
+
+```json
+{
+  "tool": "submit_media_generation",
+  "arguments": {
+    "planId": "<approved-plan-id>"
+  }
+}
+```
+
+El CLI no tiene host MCP. Requiere un valor explícito `--approve <plan-id>` que coincida con `--planId`; esto cambia de forma atómica un plan preparado a aprobado antes del envío.
+
+```bash
+kie-cli submit_media_generation --planId <prepared-plan-id> --approve <prepared-plan-id> --json
+```
+
+## Modelos
+
+Un catálogo unificado y siempre actualizado, organizado por trabajo:
+
+### Generación de video
+
+| Modelo | Mejor para | Herramienta |
+| --- | --- | --- |
+| **ByteDance Seedance 2.5** | Referencias multimodales, control de primer o último fotograma y audio nativo | `bytedance_seedance_video` |
+| **Kling 3.0** | Videos multi-toma y audio nativo | `kling_video` |
+| **Google Veo 3 / 3.1** | Generación cinematográfica con audio sincronizado y salida 1080p | `veo3_generate_video` |
+| **Gemini Omni** | Videos con personajes y voces reutilizables | `gemini_omni` |
+| **MiniMax H3 (Hailuo 03)** | Texto, primer o último fotograma y referencias multimodales a video | `hailuo_video` |
+| **Wan 3.0 / Prime** y **HappyHorse 1.1** | Referencias multimodales y generación de video | `wan_video`, `happyhorse_video` |
+
+### Edición de video y avatares
+
+- **Runway Aleph**: transformación y edición de video a video
+- **Midjourney** y **Grok Imagine**: imagen a video, generación estilizada y edición de imágenes con Grok Imagine Image 2.0
+- **Wan Animate**: animación y reemplazo de personajes
+- **OmniHuman 1.5**, **Kling Avatar** e **InfiniTalk**: avatares hablantes y sincronización labial
+
+### Generación y edición de imágenes
+
+- **Nano Banana 2 / Lite**, **GPT Image 2.5**, **Seedream 5 Pro / Flash**, **Qwen3 / Pro**, **Wan 2.7 Image / Pro**, **Flux Kontext / Flux 2** y **Z-Image**: generación y edición de imágenes
+- **Ideogram**, **Recraft** y **Topaz**: reencuadre, remoción de fondo y upscaling
+
+### Audio
+
+- **Suno V6 / Mini / Wild**: generación de música con letras, personas, referencias de medios y duración personalizada
+- **ElevenLabs**: texto a voz y efectos de sonido
+
+Cada herramienta tiene **detección inteligente de modo**: una sola herramienta hace generar / editar / upscale según los parámetros que pasas.
+
+**La lista completa y actual siempre está disponible:** corre `kie-cli --help` (y `kie-cli <tool> --help` para los flags de una herramienta), o ver **[docs/TOOLS.md](docs/TOOLS.md)**.
+
+## Recursos y prompts del MCP
+
+Además de las herramientas, el servidor MCP expone (todo generado desde el registro, así que nunca se desincroniza):
+
+- **Prompts** (slash commands en tu cliente): `/image` y `/video`: guía para elegir y manejar el modelo correcto.
+- **Recursos:**
+  - `kie://tools/<name>`: una referencia en Markdown por herramienta (parámetros, tipos, defaults), generada desde su schema.
+  - `kie://guides/image-models-comparison`, `kie://guides/video-models-comparison`, `kie://guides/quality-optimization`: comparativas de modelos y guías de costo/calidad.
+- `kie://tasks/active`, `kie://stats/usage`: vista en vivo de la base de datos local de tareas.
+- `ui://kie/upload.html`: widget de carga aislado de MCP Apps.
+
+## Novedades en MCP 5.6.2
+
+- Los resultados de tareas completadas ahora llevan `result_urls` en el contenido estructurado, así que los clientes que leen contenido estructurado reciben las URLs de salida de `wait_for_task`.
+
+## Novedades en MCP 5.6.1
+
+- Corrige que `prepare_media_generation` fallara en clientes MCP estrictos con "Structured content does not match the tool's output schema". El esquema de salida declarado ahora incluye el plan.
+
+## Novedades en MCP 5.6.0
+
+- Los planes preparados muestran el precio de cada ítem en créditos y en USD ($0.005 por crédito publicado por Kie, marcado como conversión), y el plan completo se devuelve en el resultado de preparación. Los precios desconocidos siguen como `unknown`.
+- Los clientes sin elicitación de formulario aprueban en el chat: `submit_media_generation` acepta `approve` igual a `planId` después de que el usuario confirma el plan mostrado.
+
+## Novedades en MCP 5.5.0
+
+- Fórmula exacta para ByteDance Seedance 2.5 sin video de referencia: 28, 63 y 158 créditos por segundo a 480p, 720p y 1080p, multiplicado por la duración generada.
+
+## Novedades en MCP 5.4.0
+
+- Fórmulas exactas para Qwen z-image (0.8 por imagen), Recraft Remove Background (1 por imagen) y Wan 2.7 Image (4.8 estándar y 12 Pro, por imagen).
+
+## Novedades en MCP 5.3.2
+
+- GPT Image 2.5 ya cotiza 2K a 10 créditos y 4K a 16 créditos por imagen, y la edición al mismo precio por resolución. 1K sigue en 6 créditos.
+
+## Novedades en MCP 5.3.1
+
+- GPT Image 2.5 Flare y Sunburst a 1K ya cotizan un precio exacto: 6 créditos por imagen. 2K, 4K y la edición siguen en `unknown`.
+
+## Novedades en MCP 5.3.0
+
+- La herramienta de imagen de GPT ahora es `gpt_image`. El modelo sigue siendo GPT Image 2.5 (Flare y Sunburst). Actualiza `KIE_AI_ENABLED_TOOLS` y cualquier plan guardado que nombre el viejo `gpt_image_2`.
+
+## Novedades en MCP 5.2.0
+
+- Suno V6/Mini/Wild, GPT Image 2.5 Flare/Sunburst, Seedream 5 Pro/Flash y capas, Qwen3/Pro y HappyHorse 1.1 reemplazan las versiones retiradas.
+- `wan_video` agrega Wan 3.0 Prime. La nueva herramienta `wan_image` soporta Wan 2.7 Image/Pro, hasta nueve referencias, salida secuencial, paletas y edición por cajas.
+- Los cambios del núcleo compartido llegan a CLI 0.10 y a los adaptadores OpenAI seleccionados en transporte 0.8. Se conservan la consulta de tareas históricas y los alias de transporte, sin generar con rutas antiguas. Los precios no verificados siguen como `unknown`.
+
+Ejemplos de migración:
+
+```bash
+kie-cli suno_generate_music --customMode --instrumental --model V6 --style "Ambient piano" --title "Quiet"
+kie-cli gpt_image --model sunburst --prompt "A glass perfume bottle" --background transparent
+kie-cli bytedance_seedream_image --version 5-flash --size 1.5K --prompt "A botanical poster"
+kie-cli bytedance_seedream_image --version 5-pro --image_url https://example.com/product.png
+kie-cli qwen_image --model qwen3-pro --resolution 2K --prompt "A product photo"
+kie-cli happyhorse_video --image_urls https://example.com/scene.png --duration 5
+kie-cli wan_video --model wan/3-0-video-prime --prompt "A mountain lake at sunrise"
+kie-cli wan_image --model wan/2-7-image-pro --resolution 4K --n 1 --prompt "A city map"
+```
+
+Suno rechaza solicitudes no personalizadas que solo traen un prompt. Qwen usa `image_urls` para editar y rechaza los controles de inferencia retirados. Seedream Flash usa `size`, Pro usa `quality` y una `image_url` selecciona capas. Ver los [contratos actuales](docs/ENDPOINTS.md).
+
+### MCP 5.1
+
+- **Wan 3.0.** `wan_video` ahora usa el modelo unificado `wan/3-0-video` con
+  texto, fotogramas inicial/final, hasta 10 imágenes, 5 videos, 5 audios,
+  documentos, páginas web, audio nativo y clips de 2 a 30 segundos.
+- **Release compartido.** El mismo contrato de Wan 3.0 está en CLI 0.9 y en el
+  transporte OpenAI 0.7. La ruta OpenAI acepta `kie-wan-3-0-video` y conserva
+  `kie-wan-2-7-video` como alias de compatibilidad.
+
+### Base de MCP 5.0
+
+Construido sobre los **paquetes SDK v2** (`@modelcontextprotocol/server`,
+`@modelcontextprotocol/node`) con **Node >= 20** y **zod v4**:
+
+- **Doble era de protocolo.** El servidor negocia la versión del protocolo por
+  cliente: los clientes de la era 2025 siguen funcionando sin cambios,
+  mientras que el vocabulario de 2026-07-28 (`server/discover`, cache hints,
+  extensiones, schemas estructurados, tasks) se sirve apenas el SDK levante su
+  tope de negociación.
+- **Resultados estructurados.** Las llamadas fallidas llegan como `isError:
+  true` con contenido de error estructurado; las herramientas de generación,
+  subida y planificación exponen `structuredContent` (`task_id`, `media_id`,
+  `plan_id`) y anuncian `outputSchema` en `tools/list`.
+- **Schemas de entrada modernos.** El `inputSchema` de cada herramienta se
+  genera como JSON Schema 2020-12, el dialecto que apunta MCP 2026-07-28.
+- **Aprobación MRTR.** En hosts de la era 2026 la aprobación es un flujo
+  `input_required` de varias rondas; los hosts de 2025 conservan la
+  elicitación push.
+- **`server/discover` + cache hints + negociación de extensiones.** El
+  servidor responde discovery con sus versiones soportadas, capacidades e
+  instrucciones, y anuncia la extensión MCP Apps que controla el recurso del
+  widget de subida.
+- **Tasks oficiales de MCP (opt-in).** `KIE_AI_MCP_TASKS=true` expone la
+  capacidad `tasks` y las llamadas `tools/call` en modo tarea respaldadas por
+  un motor en proceso espejado en la base SQLite local; las herramientas de
+  estado legacy siguen disponibles en todos los modos.
+
+## Ejemplos
+
+### MCP (preparar, aprobar, enviar)
+
+Primero prepara la solicitud pagada. Esto no inicia una generación:
+
+```json
+{
+  "tool": "prepare_media_generation",
+  "arguments": {
+    "items": [
+      {
+        "tool": "nano_banana_image",
+        "args": {
+          "prompt": "Una ciudad futurista al atardecer, estilo ciberpunk",
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "output_format": "png"
+        }
+      }
+    ]
+  }
+}
+```
+
+El host MCP presenta el plan devuelto, los ajustes resueltos y el resumen de precio con `elicitation.form`. Aprueba ese formulario del host con `confirm: true`; la respuesta aprobada incluye un `planId`. Luego envía ese plan aprobado. Sin elicitación de formulario, muestra el plan y el precio al usuario, espera un sí claro en el chat y envía con `"approve": "<plan-id>"` junto a `planId`:
+
+```json
+{
+  "tool": "submit_media_generation",
+  "arguments": {
+    "planId": "<approved-plan-id>"
+  }
+}
+```
+
+No llames directamente herramientas de medios pagas desde MCP. `KIE_AI_ALLOW_DIRECT_GENERATION=true` es solo el bypass explícito de legado.
+
+### CLI
+
+```bash
+# Genera una imagen, luego espera el resultado en una sola llamada (sin consultar a mano)
+kie-cli nano_banana_image --prompt "a red panda coding at night, neon" --resolution 2K --json
+kie-cli wait_for_task --task_id <id> --json
+
+# Música, sin letra personalizada
+kie-cli suno_generate_music --style "Upbeat electronic, energetic" --customMode --instrumental --model V6 --title "Energy Boost"
+
+# Voz
+kie-cli elevenlabs_tts --text "Welcome to the future of content creation!" --voice Rachel --model turbo
+```
+
+La generación es asíncrona: las herramientas devuelven un `task_id`. Espéralo en una sola llamada con `wait_for_task` (consulta a Kie por ti y devuelve las URLs finales cuando están listas), o revisa una vez con `get_task_status` y mira el trabajo reciente con `list_tasks`. Agrega `--json` al CLI para salida procesable por máquina.
+
+En un cliente MCP, `wait_for_task` mantiene la llamada abierta y envía `notifications/progress` hasta que el resultado está listo, así el modelo obtiene las URLs sin hacer bucles. Para trabajos largos (video), activa `resetTimeoutOnProgress` con un `maxTotalTimeout` generoso en tu cliente para que la llamada no se corte en el timeout por defecto.
+
+## Configuración
+
+<details>
+<summary><strong>⚙️ Variables de entorno</strong></summary>
+
+### Requerida
+```bash
+export KIE_AI_API_KEY="tu-api-key-aqui"   # Consíguela en https://kie.ai/api-key
+```
+
+### Opcionales
+```bash
+export KIE_AI_BASE_URL="https://api.kie.ai/api/v1"            # URL base de la API
+export KIE_AI_TIMEOUT="60000"                                # Timeout de request (ms)
+export KIE_AI_DB_PATH="./tasks.db"                           # Ubicación de la base de datos de tareas
+export KIE_AI_CALLBACK_URL="https://your-domain.com/webhook" # Callback personalizado
+export KIE_AI_CALLBACK_URL_FALLBACK="https://your-proxy.com/callback"  # Default a nivel deployment
+```
+
+### Prioridad de callback URL
+
+| Prioridad | Origen | Variable |
+|-----------|--------|----------|
+| 1 | Por request | argumento `callBackUrl` |
+| 2 | Entorno | `KIE_AI_CALLBACK_URL` |
+| 3 | Fallback admin | `KIE_AI_CALLBACK_URL_FALLBACK` |
+| 4 | Default fijo | `https://proxy.kie.ai/mcp-callback` |
+
+Ver [docs/ADMIN.md](docs/ADMIN.md) para ejemplos con Docker, Kubernetes y Systemd.
+</details>
+
+<details>
+<summary><strong>📦 Instalar desde el código fuente (para desarrollo)</strong></summary>
+
+```bash
+git clone https://github.com/felores/kie-cli-mcp.git
+cd kie-cli-mcp
+npm install
+npm run build       # compila todos los workspaces
+npm run typecheck   # type-check de todos los workspaces
+npm test            # corre la suite de tests
+```
+
+Es un monorepo de npm workspaces: `packages/core` (registro compartido privado, bundleado dentro de los otros), `packages/mcp` (`@felores/kie-ai-mcp-server`) y `packages/cli` (`@felores/kie-cli`). Para agregar un modelo, corre `npm run add-tool -- <name> <category>` y ambas superficies lo toman. Para el servidor dev con auto-reload: `npm run dev -w @felores/kie-ai-mcp-server`.
+</details>
+
+<details>
+<summary><strong>🌐 Transporte remoto / HTTP (v5.0.0+)</strong></summary>
+
+El servidor usa **stdio** por defecto (un proceso local por cliente). También
+puede correr como **servicio HTTP remoto** vía **Streamable HTTP**. Desde v5.0.0 está construido sobre los paquetes SDK v2 de MCP y sirve a clientes de la era 2025 y de 2026-07-28 mediante negociación de protocolo.
+
+**Por qué usarlo:**
+- **Una sola instancia compartida para varios clientes**: hospédalo una vez y
+  conecta a todo tu equipo o varios agentes por red, en vez de levantar un
+  proceso local por cada uno.
+- **Despliega donde sea**: corre como contenedor en cualquier host o PaaS
+  (Dockerfile + compose de Coolify incluidos), detrás de tu propio TLS/proxy.
+- **Configuración e historial centralizados**: una sola API key y una base de
+  datos SQLite de tareas compartida, así las generaciones quedan en un solo lugar.
+- **Seguro por defecto fuera de loopback**: auth por bearer token y protección
+  por allowlist de Host (anti DNS-rebinding), con un endpoint `/health` abierto
+  para sondas de uptime.
+- **Sin disrupción**: stdio sigue siendo el default; HTTP es puramente opt-in.
+
+Actívalo con `MCP_TRANSPORT=http` o `--http`:
+
+```bash
+KIE_AI_API_KEY=sk-... MCP_TRANSPORT=http MCP_HTTP_PORT=3000 \
+  node packages/mcp/dist/index.js
+curl http://127.0.0.1:3000/health
+# → {"status":"ok","transport":"streamable-http","sessions":0,"version":"4.3.0"}
+```
+
+Un solo endpoint `/mcp` (POST + GET/SSE + DELETE), sesiones con estado vía
+`Mcp-Session-Id`, más un `GET /health` sin autenticación.
+
+| Env | Default | Propósito |
+|-----|---------|-----------|
+| `MCP_TRANSPORT` | `stdio` | poner `http` para activar |
+| `MCP_HTTP_HOST` | `127.0.0.1` | `0.0.0.0` solo en contenedor / detrás de proxy |
+| `MCP_HTTP_PORT` | `3000` | puerto de escucha |
+| `KIE_MCP_HTTP_TOKEN` | _(sin valor)_ | exige `Authorization: Bearer <token>` |
+| `MCP_ALLOWED_HOSTS` | _(sin valor)_ | allowlist de Host (anti DNS-rebinding); requerido fuera de loopback |
+
+El despliegue con Docker + Coolify y una guía de conexión de cliente están en
+[docs/DEPLOY_HTTP.md](docs/DEPLOY_HTTP.md).
+</details>
+
+## Gestión de tareas
+
+El servidor mantiene una base de datos SQLite local de las tareas que crea y consulta, persistente entre reinicios, usada para rastrear estado y para enrutar al endpoint correcto.
+
+```json
+{ "tool": "list_tasks", "arguments": { "limit": 20, "status": "completed" } }
+```
+```json
+{ "tool": "get_task_status", "arguments": { "task_id": "281e5b0...f39b9" } }
+```
+
+Nota: `list_tasks` refleja el cache local del MCP, las tareas que ha creado o consultado, no el historial completo de tu cuenta Kie.ai. Ver [docs/DATABASE.md](docs/DATABASE.md).
+
+## Manejo de errores
+
+El servidor expone los códigos de respuesta de Kie.ai (solo trata `code === 200` como éxito):
+
+| Código | Significado |
+|--------|-------------|
+| 200 | Éxito |
+| 400 | Violación de content policy / solo prompts en inglés |
+| 401 | No autorizado (API key inválida) |
+| 402 | Créditos insuficientes |
+| 404 | Recurso no encontrado |
+| 422 | Error de validación / record nulo |
+| 429 | Rate limit |
+| 455 | Mantenimiento del servicio |
+| 500 | Error del servidor / timeout |
+| 501 | Generación fallida |
+
+## Solución de problemas
+
+- **"Unauthorized"**: verifica que `KIE_AI_API_KEY` esté seteada y válida en [kie.ai/api-key](https://kie.ai/api-key).
+- **"Task not found"**: las tareas pueden expirar después de ~14 días; revisa el task id.
+- **Generaciones fallidas**: revisa cumplimiento de content policy, prompts en inglés, y créditos suficientes.
+
+## Documentación
+
+- [docs/TOOLS.md](docs/TOOLS.md): referencia completa de herramientas
+- [docs/DATABASE.md](docs/DATABASE.md): base de datos y ciclo de vida de tareas
+- [docs/ADMIN.md](docs/ADMIN.md): despliegue y configuración de entorno
+- [docs/INTELLIGENCE.md](docs/INTELLIGENCE.md): detección inteligente de modo y optimización de costo
+
+## Soporte
+
+- **Este servidor (MCP o CLI):** abre un pull request en https://github.com/felores/kie-cli-mcp
+- **API de Kie.ai:** support@kie.ai o https://docs.kie.ai/
+- **API keys:** https://kie.ai/api-key
+
+## Contribuir
+
+Fork → rama de feature → haz tu cambio (agrega tests si aplica) → abre un PR.
+
+## Licencia
+
+MIT, ver [LICENSE](LICENSE).
+
+## Changelog
+
+Ver [CHANGELOG.md](CHANGELOG.md).
